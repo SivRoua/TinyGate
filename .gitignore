@@ -1,0 +1,46 @@
+# ESP-IDF 编译构建与配置产物
+build/
+sdkconfig
+sdkconfig.old
+sdkconfig.ci
+managed_components/
+dependencies.lock
+
+# Rust / Cargo 构建产物 (针对 Rust 规则引擎模块)
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# Python 缓存与虚拟环境 (针对云端高级引擎)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.log
+
+# 编辑器与 IDE 配置
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统临时文件
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+# 敏感本地配置文件 (防止私网 Wi-Fi 或云端凭证泄露)
+*.local.toml
+secrets.toml
+wifi_credentials.h
