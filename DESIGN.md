@@ -45,18 +45,36 @@
 #### 5. 软件工程与语言选型
 - 架构分工:
   - 底层系统与通信: 采用 C 语言 (ESP-IDF)，调用官方底层库以保证 Wi-Fi、BLE 及 Zigbee 射频协议栈的稳定共存。
-  - 边缘规则引擎: 核心规则解析与状态机计算可采用 Rust 编写为静态库，通过 C FFI 接口与 C 语言主工程链接，利用 Rust 类型安全特性解析 TOML 并执行匹配。
+  - 边缘规则引擎: ~~核心规则解析与状态机计算可采用 Rust 编写为静态库，通过 C FFI 接口与 C 语言主工程链接，利用 Rust 类型安全特性解析 TOML 并执行匹配。~~
   - 人机界面任务: 建立低优先级后台异步任务驱动 OLED 刷新，避免阻塞关键射频时序。
 
 ---
 
-### 2026-11-10 C <-> Rust FFI 胶水层设计与落地
-- **组件架构**:
-  - 将 Rust 边缘规则引擎封装为独立的 ESP-IDF 标准组件（`tiny-gate/components/rule_engine`）。
-  - 在 CMake 中通过 `add_custom_command` 驱动 `cargo build --target riscv32imac-unknown-none-elf --release` 编译为 `librule_engine.a` 静态库直连主固件。
-- **内存安全与零跨界拷贝**:
-  - 统一物模型采用 C ABI 兼容结构体：事件入参 `tg_event_t`、动作出参 `tg_action_t` 及通用数值标签联合体 `tg_value_t`。
-  - 触发结果采用 C 函数指针回调机制 (`tg_action_callback_t`)，执行动作直接在调用者栈与上下文内派发，杜绝跨语言堆内存分配与泄漏风险。
-- **宿主/嵌入式双模支持**:
-  - 硬件目标：`#![cfg_attr(not(test), no_std)]`，目标架构 `riscv32imac-unknown-none-elf`，启用 `panic = "abort"` 与 size 优化。
-  - 单元测试：在 PC 宿主机直接运行 `cargo test --lib`，支持极速本地断言与 TCA 规则算法验证。
+### ~~2026-11-10 C <-> Rust FFI 胶水层设计与落地~~
+~~- **组件架构**:~~
+
+  - ~~将 Rust 边缘规则引擎封装为独立的 ESP-IDF 标准组件（`tiny-gate/components/rule_engine`）。~~
+  - ~~在 CMake 中通过 `add_custom_command` 驱动 `cargo build --target riscv32imac-unknown-none-elf --release` 编译为 `librule_engine.a` 静态库直连主固件。~~
+- ~~**内存安全与零跨界拷贝**:~~
+  - ~~统一物模型采用 C ABI 兼容结构体：事件入参 `tg_event_t`、动作出参 `tg_action_t` 及通用数值标签联合体 `tg_value_t`。~~
+  - ~~触发结果采用 C 函数指针回调机制 (`tg_action_callback_t`)，执行动作直接在调用者栈与上下文内派发，杜绝跨语言堆内存分配与泄漏风险。~~
+- ~~**宿主/嵌入式双模支持**:~~
+  - ~~硬件目标：`#![cfg_attr(not(test), no_std)]`，目标架构 `riscv32imac-unknown-none-elf`，启用 `panic = "abort"` 与 size 优化。~~
+  - ~~单元测试：在 PC 宿主机直接运行 `cargo test --lib`，支持极速本地断言与 TCA 规则算法验证。~~
+
+### 2026-11-12 以Rust为基座，esp-idf初始化C组件库
+
+推翻先前设计，由于C是驱动层，而Rust是调用者，反而用cargo管理rust项目，用rust调用C函数更方便。因此推翻了先前C底座，rust作为组件的设计。
+
+新的设计：rust为底座，以C为驱动层引出各设备的公开函数供rust层调用。
+
+#### 落地实现与工程结构
+- **Rust 顶层架构**:
+  - 基于 `esp-idf-svc` (std 路线) + `embuild`，目标芯片 `esp32c6` (RISC-V 目标架构 `riscv32imac-esp-espidf`)。
+  - 通过 `.cargo/config.toml` 配置 `ldproxy` 链接器与 `build-std = ["std", "panic_abort"]`。
+- **C 驱动组件下沉 (`components/c_drivers`)**:
+  - 独立 ESP-IDF 标准组件结构，包含 `CMakeLists.txt`、`include/c_drivers.h` 与 `src/c_drivers.c`。
+  - 模块化暴露硬件接口：UPS 电源与电池 ADC/中断采样、OLED SSD1306 显示流、MicroSD 存储挂载、Zigbee 3.0 协调器与 BLE 接入能力。
+  - 在 `Cargo.toml` 中配置 `package.metadata.esp-idf-sys.extra_components` 联动 ESP-IDF 构建体系，由 Rust `src/c_drivers.rs` 统一提供类型安全封装。
+
+

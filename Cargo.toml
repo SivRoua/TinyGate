@@ -1,0 +1,30 @@
+[package]
+name = "tiny-gate"
+version = "0.1.0"
+authors = ["KanaDE <kanade@slsec.lab>"]
+edition = "2021"
+resolver = "2"
+
+[[bin]]
+name = "tiny-gate"
+path = "src/main.rs"
+harness = false
+
+[profile.release]
+opt-level = "s"
+
+[profile.dev]
+debug = true
+opt-level = "z"
+
+[dependencies]
+log = "0.4"
+esp-idf-svc = { version = "0.51", default-features = false, features = ["std", "binstart"] }
+anyhow = "1.0"
+
+[build-dependencies]
+embuild = { version = "0.33", features = ["espidf"] }
+
+[[package.metadata.esp-idf-sys.extra_components]]
+component_dirs = ["components"]
+bindings_header = "components/c_drivers/include/c_drivers.h"

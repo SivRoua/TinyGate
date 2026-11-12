@@ -1,0 +1,17 @@
+[build]
+target = "riscv32imac-esp-espidf"
+target-dir = "C:/t"
+
+[target.riscv32imac-esp-espidf]
+linker = "ldproxy"
+runner = "espflash flash --monitor"
+rustflags = ["--cfg", "espidf_time64"]
+
+[unstable]
+build-std = ["std", "panic_abort"]
+
+[env]
+MCU = "esp32c6"
+IDF_PATH = "C:/.embuild/espressif/esp-idf/v5.3.2"
+ESP_IDF_TOOLS_INSTALL_DIR = "global"
+LIBCLANG_PATH = "C:/Users/sunsi/.rustup/toolchains/esp/xtensa-esp32-elf-clang/esp-clang/bin/libclang.dll"

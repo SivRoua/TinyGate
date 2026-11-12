@@ -48,3 +48,8 @@ wifi_credentials.h
 # AI Memory Keeper
 .ai-memory-keeper/
 
+
+
+# Added by cargo
+
+/target
