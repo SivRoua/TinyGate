@@ -48,7 +48,15 @@
   - 边缘规则引擎: 核心规则解析与状态机计算可采用 Rust 编写为静态库，通过 C FFI 接口与 C 语言主工程链接，利用 Rust 类型安全特性解析 TOML 并执行匹配。
   - 人机界面任务: 建立低优先级后台异步任务驱动 OLED 刷新，避免阻塞关键射频时序。
 
+---
 
-
-
- 
+### 2026-11-10 C <-> Rust FFI 胶水层设计与落地
+- **组件架构**:
+  - 将 Rust 边缘规则引擎封装为独立的 ESP-IDF 标准组件（`tiny-gate/components/rule_engine`）。
+  - 在 CMake 中通过 `add_custom_command` 驱动 `cargo build --target riscv32imac-unknown-none-elf --release` 编译为 `librule_engine.a` 静态库直连主固件。
+- **内存安全与零跨界拷贝**:
+  - 统一物模型采用 C ABI 兼容结构体：事件入参 `tg_event_t`、动作出参 `tg_action_t` 及通用数值标签联合体 `tg_value_t`。
+  - 触发结果采用 C 函数指针回调机制 (`tg_action_callback_t`)，执行动作直接在调用者栈与上下文内派发，杜绝跨语言堆内存分配与泄漏风险。
+- **宿主/嵌入式双模支持**:
+  - 硬件目标：`#![cfg_attr(not(test), no_std)]`，目标架构 `riscv32imac-unknown-none-elf`，启用 `panic = "abort"` 与 size 优化。
+  - 单元测试：在 PC 宿主机直接运行 `cargo test --lib`，支持极速本地断言与 TCA 规则算法验证。

@@ -44,3 +44,7 @@ ehthumbs.db
 *.local.toml
 secrets.toml
 wifi_credentials.h
+
+# AI Memory Keeper
+.ai-memory-keeper/
+

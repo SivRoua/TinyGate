@@ -1,0 +1,17 @@
+[package]
+name = "rule_engine"
+version = "0.1.0"
+edition = "2021"
+authors = ["TinyGate Team"]
+description = "TinyGate TCA edge rule engine for ESP32-C6"
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
