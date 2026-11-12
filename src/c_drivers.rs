@@ -1,6 +1,7 @@
 use std::ffi::CString;
 use anyhow::{bail, Result};
 
+#[allow(dead_code)]
 extern "C" {
     pub fn tg_c_drivers_init() -> i32;
     pub fn tg_ups_init() -> i32;
