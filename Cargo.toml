@@ -19,7 +19,7 @@ opt-level = "z"
 
 [dependencies]
 log = "0.4"
-esp-idf-svc = { version = "0.51", default-features = false, features = ["std", "binstart"] }
+esp-idf-svc = { version = "0.53", default-features = false, features = ["std", "binstart"] }
 anyhow = "1.0"
 
 [build-dependencies]

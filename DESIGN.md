@@ -71,7 +71,8 @@
 #### 落地实现与工程结构
 - **Rust 顶层架构**:
   - 基于 `esp-idf-svc` (std 路线) + `embuild`，目标芯片 `esp32c6` (RISC-V 目标架构 `riscv32imac-esp-espidf`)。
-  - 通过 `.cargo/config.toml` 配置 `ldproxy` 链接器与 `build-std = ["std", "panic_abort"]`。
+  - 框架版本：升级至 `esp-idf-svc 0.53`，ESP-IDF 底层 SDK 全面切换至 `v6.1`，通过 `.cargo/config.toml` 配置 `ESP_IDF_VERSION = "v6.1"`。
+  - 链接与运行时：通过 `.cargo/config.toml` 配置 `ldproxy` 链接器与 `build-std = ["std", "panic_abort"]`。
 - **C 驱动组件下沉 (`components/c_drivers`)**:
   - 独立 ESP-IDF 标准组件结构，包含 `CMakeLists.txt`、`include/c_drivers.h` 与 `src/c_drivers.c`。
   - 模块化暴露硬件接口：UPS 电源与电池 ADC/中断采样、OLED SSD1306 显示流、MicroSD 存储挂载、Zigbee 3.0 协调器与 BLE 接入能力。
