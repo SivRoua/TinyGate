@@ -101,8 +101,3 @@ esp_err_t tg_zigbee_coord_init(void)
 // ==========================================
 // 5. BLE Central / Observer
 // ==========================================
-esp_err_t tg_ble_init(void)
-{
-    ESP_LOGI(TAG, "[BLE] Initializing BLE 5.3 observer/central...");
-    return ESP_OK;
-}

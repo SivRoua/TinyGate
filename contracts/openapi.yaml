@@ -1,0 +1,352 @@
+openapi: 3.1.0
+info:
+  title: TinyGate HTTP API
+  version: 1.0.0
+  description: 协作契约，尚不表示接口已实现。外部 JSON Schema 需随本文档一并分发。
+servers:
+- url: /api/v1
+  description: 部署时通过HTTPS提供
+security:
+- bearerAuth: []
+paths:
+  /gateways:
+    get:
+      operationId: listGateways
+      summary: 查询有权访问的网关
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: ./schemas/messages.schema.json#/$defs/Gateway
+                      next_cursor:
+                        type:
+                        - string
+                        - 'null'
+                    required:
+                    - items
+                    - next_cursor
+                  request_id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                required:
+                - data
+                - request_id
+        default:
+          $ref: '#/components/responses/Error'
+  /gateways/{gateway_id}:
+    get:
+      operationId: getGateway
+      summary: 查询网关状态
+      parameters:
+      - name: gateway_id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: ./schemas/messages.schema.json#/$defs/Gateway
+                  request_id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                required:
+                - data
+                - request_id
+        default:
+          $ref: '#/components/responses/Error'
+  /devices:
+    get:
+      operationId: listDevices
+      summary: 查询设备列表
+      parameters:
+      - name: gateway_id
+        in: query
+        required: false
+        schema:
+          $ref: ./schemas/messages.schema.json#/$defs/GatewayId
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: ./schemas/messages.schema.json#/$defs/Device
+                      next_cursor:
+                        type:
+                        - string
+                        - 'null'
+                    required:
+                    - items
+                    - next_cursor
+                  request_id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                required:
+                - data
+                - request_id
+        default:
+          $ref: '#/components/responses/Error'
+  /devices/{device_id}:
+    get:
+      operationId: getDevice
+      summary: 查询设备及实际状态
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: ./schemas/messages.schema.json#/$defs/Device
+                  request_id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                required:
+                - data
+                - request_id
+        default:
+          $ref: '#/components/responses/Error'
+  /devices/{device_id}/commands:
+    post:
+      operationId: createCommand
+      summary: 创建即时控制命令
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      responses:
+        '202':
+          description: 已持久化受理，或返回同一幂等请求的原命令
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: ./schemas/messages.schema.json#/$defs/Command
+                  request_id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                required:
+                - data
+                - request_id
+        default:
+          $ref: '#/components/responses/Error'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+      description: 鉴权后先检查幂等重放。相同用户、设备、键和请求返回原命令；不同请求返回409。新命令仅在网关及设备在线时受理。202不代表执行成功；超时不证明设备未动作。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas/messages.schema.json#/$defs/CommandRequest
+  /commands/{command_id}:
+    get:
+      operationId: getCommand
+      summary: 查询命令状态与结果
+      parameters:
+      - name: command_id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: ./schemas/messages.schema.json#/$defs/Command
+                  request_id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                required:
+                - data
+                - request_id
+        default:
+          $ref: '#/components/responses/Error'
+  /devices/{device_id}/events:
+    get:
+      operationId: listDeviceEvents
+      summary: 按后端接收顺序倒序查询事件，游标稳定分页
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      - name: from_at_ms
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+      - name: to_at_ms
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: ./schemas/messages.schema.json#/$defs/StoredEvent
+                      next_cursor:
+                        type:
+                        - string
+                        - 'null'
+                    required:
+                    - items
+                    - next_cursor
+                  request_id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                required:
+                - data
+                - request_id
+        default:
+          $ref: '#/components/responses/Error'
+      description: 时间筛选作用于received_at_ms，from闭区间、to开区间；相同时间以event_id排序。采集时间可能为空，不能用于通用分页。
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 用户访问令牌；签发方式另约定，不假定JWT。每次请求校验资源归属。
+  responses:
+    Error:
+      description: 按实际错误返回4xx/5xx；code见device-models.md
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas/messages.schema.json#/$defs/ApiError
