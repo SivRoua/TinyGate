@@ -1,4 +1,5 @@
 #include "tg_ble.h"
+#include "gatt_internal.h"
 
 #include <limits.h>
 #include <string.h>
@@ -27,6 +28,7 @@ static void on_sync(void)
 
 static void on_reset(int reason)
 {
+    tg_gatt_reset();
     portENTER_CRITICAL(&s_lock);
     s_status.ready = false;
     s_status.scanning = false;
@@ -39,6 +41,7 @@ static void on_reset(int reason)
 static int on_gap(struct ble_gap_event *event, void *arg)
 {
     (void)arg;
+    tg_gatt_gap(event);
     if (event->type == BLE_GAP_EVENT_DISC) {
         const struct ble_gap_disc_desc *d = &event->disc;
         tg_ble_event_t report = { .kind = TG_BLE_EVENT_REPORT };
@@ -88,6 +91,7 @@ esp_err_t tg_ble_init(void)
     s_complete_pending = s_reset_pending = false;
     portEXIT_CRITICAL(&s_lock);
     ble_hs_cfg.sync_cb = on_sync;
+    tg_gatt_reset();
     ble_hs_cfg.reset_cb = on_reset;
     nimble_port_freertos_init(host_task);
     return ESP_OK;
@@ -106,6 +110,8 @@ esp_err_t tg_ble_scan_start(const tg_ble_scan_config_t *config)
     if (allowed) s_status.scanning = true;
     portEXIT_CRITICAL(&s_lock);
     if (!allowed) return ESP_ERR_INVALID_STATE;
+    tg_ble_links_t links;tg_ble_get_links(&links);
+    if(links.connecting) {portENTER_CRITICAL(&s_lock);s_status.scanning=false;portEXIT_CRITICAL(&s_lock);return ESP_ERR_INVALID_STATE;}
 
     uint8_t own_address_type;
     int rc = ble_hs_id_infer_auto(0, &own_address_type);
@@ -185,6 +191,7 @@ esp_err_t tg_ble_deinit(void)
     if (rc) return ESP_FAIL;
     esp_err_t err = nimble_port_deinit();
     if (err != ESP_OK) return err;
+    tg_gatt_reset();
     portENTER_CRITICAL(&s_lock);
     memset(&s_status, 0, sizeof(s_status));
     s_head = s_count = 0;

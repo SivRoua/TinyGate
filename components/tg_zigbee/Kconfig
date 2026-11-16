@@ -1,0 +1,6 @@
+menu "TinyGate Zigbee"
+    config TG_ZIGBEE_CHANNEL
+        int "Initial Zigbee channel (both boards must agree)"
+        range 11 26
+        default 15
+endmenu

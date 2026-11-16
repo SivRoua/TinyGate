@@ -5,3 +5,6 @@
 #include "tg_temperature.h"
 #include "tg_system.h"
 #include "tg_display.h"
+#include "tg_zigbee.h"
+#include "tg_button.h"
+#include "tg_rgb.h"

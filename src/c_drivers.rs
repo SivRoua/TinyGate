@@ -8,7 +8,6 @@ extern "C" {
     pub fn tg_ups_is_mains_power_loss() -> bool;
     pub fn tg_sdcard_init() -> i32;
     pub fn tg_sdcard_is_mounted() -> bool;
-    pub fn tg_zigbee_coord_init() -> i32;
 }
 
 pub struct CDrivers;

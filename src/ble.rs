@@ -41,7 +41,81 @@ fn check(code: i32, operation: &str) -> Result<()> {
     }
     Ok(())
 }
+#[allow(dead_code)]
 impl Scanner {
+    pub fn connect(&mut self, address: [u8; 6], address_type: u8) -> Result<()> {
+        self.ensure_active()?;
+        check(
+            unsafe { sys::tg_ble_connect(address.as_ptr(), address_type) },
+            "BLE connect",
+        )
+    }
+    pub fn cancel_connect(&mut self) -> Result<()> {
+        self.ensure_active()?;
+        check(
+            unsafe { sys::tg_ble_connect_cancel() },
+            "BLE connect cancel",
+        )
+    }
+    pub fn disconnect(&mut self, conn: u16) -> Result<()> {
+        self.ensure_active()?;
+        check(unsafe { sys::tg_ble_disconnect(conn) }, "BLE disconnect")
+    }
+    pub fn links(&self) -> Result<sys::tg_ble_links_t> {
+        self.ensure_active()?;
+        let mut status = unsafe { std::mem::zeroed() };
+        check(unsafe { sys::tg_ble_get_links(&mut status) }, "BLE links")?;
+        Ok(status)
+    }
+    pub fn services(&mut self, conn: u16, id: u32) -> Result<()> {
+        self.ensure_active()?;
+        check(unsafe { sys::tg_ble_services(conn, id) }, "BLE services")
+    }
+    pub fn characteristics(&mut self, conn: u16, start: u16, end: u16, id: u32) -> Result<()> {
+        self.ensure_active()?;
+        check(
+            unsafe { sys::tg_ble_characteristics(conn, start, end, id) },
+            "BLE characteristics",
+        )
+    }
+    pub fn descriptors(&mut self, conn: u16, start: u16, end: u16, id: u32) -> Result<()> {
+        self.ensure_active()?;
+        check(
+            unsafe { sys::tg_ble_descriptors(conn, start, end, id) },
+            "BLE descriptors",
+        )
+    }
+    pub fn read(&mut self, conn: u16, handle: u16, id: u32) -> Result<()> {
+        self.ensure_active()?;
+        check(unsafe { sys::tg_ble_read(conn, handle, id) }, "BLE read")
+    }
+    pub fn write(&mut self, conn: u16, handle: u16, data: &[u8], id: u32) -> Result<()> {
+        self.ensure_active()?;
+        if data.is_empty() || data.len() > 128 {
+            bail!("BLE write length must be 1..128");
+        }
+        check(
+            unsafe { sys::tg_ble_write(conn, handle, data.as_ptr(), data.len() as u16, id) },
+            "BLE write",
+        )
+    }
+    pub fn subscribe(&mut self, conn: u16, cccd: u16, mode: u8, id: u32) -> Result<()> {
+        self.ensure_active()?;
+        check(
+            unsafe { sys::tg_ble_subscribe(conn, cccd, mode, id) },
+            "BLE subscribe",
+        )
+    }
+    pub fn poll_gatt(&mut self) -> Result<Option<sys::tg_ble_gatt_event_t>> {
+        self.ensure_active()?;
+        let mut event = unsafe { std::mem::zeroed() };
+        let code = unsafe { sys::tg_ble_poll_gatt(&mut event) };
+        if code == sys::ESP_ERR_NOT_FOUND {
+            return Ok(None);
+        }
+        check(code, "BLE GATT event")?;
+        Ok(Some(event))
+    }
     pub fn new() -> Result<Self> {
         if OWNED
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)

@@ -1,5 +1,8 @@
 # BLE 扫描驱动示例
 
+> 2026-11-16 已新增双连接 Central/GATT、读写与通知订阅接口，见
+> [Wi-Fi / BLE / RGB 串口联调](connectivity-and-rgb.md)。下文描述扫描子功能。
+
 > 2026-11-14：BLE 已迁入独立 `components/tg_ble` 组件。
 > 当前主程序先运行 Wi-Fi 扫描，再运行本节 BLE 示例，最后打印系统心跳。
 > 完整目录与新接口见 [板上资源驱动说明](onboard-drivers.md)。

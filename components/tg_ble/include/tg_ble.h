@@ -52,6 +52,49 @@ esp_err_t tg_ble_get_status(tg_ble_status_t *status);
 /* Blocking stop/deinit; invoke only from the application task. */
 esp_err_t tg_ble_deinit(void);
 
+/* Central/GATT: up to two links, one procedure per link. Scan must be stopped
+ * before connect. IDs must remain unique until completion; no automatic replay.
+ * UUIDs are printable strings; data is copied, at most 128 bytes, truncation explicit. */
+#define TG_BLE_LINK 1
+#define TG_BLE_UNLINK 2
+#define TG_BLE_SERVICE 3
+#define TG_BLE_CHARACTERISTIC 4
+#define TG_BLE_DESCRIPTOR 5
+#define TG_BLE_VALUE 6
+#define TG_BLE_OPERATION_DONE 7
+#define TG_BLE_NOTIFICATION 8
+typedef struct {
+    uint8_t kind;
+    uint16_t connection;
+    uint16_t handle;
+    uint16_t end_handle;
+    uint8_t properties;
+    char uuid[37];
+    uint32_t request_id;
+    int32_t status; /* Native NimBLE status; DONE maps BLE_HS_EDONE to success */
+    uint16_t data_len;
+    bool truncated;
+    uint8_t data[128];
+} tg_ble_gatt_event_t;
+typedef struct {
+    uint8_t links;
+    uint16_t handles[2]; /* 0xFFFF if unused; snapshot for recovery after queue overflow */
+    bool connecting;
+    uint32_t dropped_events;
+} tg_ble_links_t;
+esp_err_t tg_ble_connect(const uint8_t address[6],uint8_t address_type);
+esp_err_t tg_ble_connect_cancel(void);
+esp_err_t tg_ble_disconnect(uint16_t connection);
+esp_err_t tg_ble_services(uint16_t connection,uint32_t id);
+esp_err_t tg_ble_characteristics(uint16_t connection,uint16_t start,uint16_t end,uint32_t id);
+esp_err_t tg_ble_descriptors(uint16_t connection,uint16_t start,uint16_t end,uint32_t id);
+esp_err_t tg_ble_read(uint16_t connection,uint16_t handle,uint32_t id);
+esp_err_t tg_ble_write(uint16_t connection,uint16_t handle,const uint8_t *data,uint16_t length,uint32_t id);
+/* CCCD handle must come from discovery (UUID 0x2902); mode 0/1/2 = off/notify/indicate. */
+esp_err_t tg_ble_subscribe(uint16_t connection,uint16_t cccd,uint8_t mode,uint32_t id);
+esp_err_t tg_ble_poll_gatt(tg_ble_gatt_event_t *event);
+esp_err_t tg_ble_get_links(tg_ble_links_t *status);
+
 #ifdef __cplusplus
 }
 #endif
