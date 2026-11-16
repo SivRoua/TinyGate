@@ -2,12 +2,21 @@ mod ble;
 mod ble_ad;
 #[allow(dead_code)]
 mod c_drivers;
+mod display;
 mod platform;
 
 use anyhow::{bail, Result};
 use ble::{Event, Scanner};
 use log::{info, warn};
 use std::time::{Duration, Instant};
+
+fn update_oled(display: &mut Option<display::Display>, line1: &str, line2: &str) {
+    if let Some(screen) = display {
+        if let Err(err) = screen.show_status("TinyGate", line1, line2) {
+            warn!("OLED update: {err:#}");
+        }
+    }
+}
 
 fn ble_demo() -> Result<()> {
     info!("TinyGate C6 BLE scan example: C driver -> Rust events");
@@ -99,6 +108,20 @@ fn wifi_demo() -> Result<()> {
 fn main() -> Result<()> {
     esp_idf_svc::sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
+    let mut display = match display::Display::new() {
+        Ok(screen) => {
+            info!(
+                "SSD1306 ready: SDA=20 SCL=19 address=0x{:02X}",
+                screen.address()?
+            );
+            Some(screen)
+        }
+        Err(err) => {
+            warn!("OLED unavailable (SDA20/SCL19): {err:#}");
+            None
+        }
+    };
+    update_oled(&mut display, "BOOT OK", "SDA20 SCL19");
     let system = platform::system_info()?;
     info!(
         "Chip model={} revision={} cores={} reset={} heap={} min_heap={} largest={}",
@@ -124,18 +147,25 @@ fn main() -> Result<()> {
         }
     }
     // Test radios sequentially; simultaneous coexistence is a separate validation.
+    update_oled(&mut display, "WIFI SCANNING", "PLEASE WAIT");
     if let Err(err) = wifi_demo() {
         warn!("Wi-Fi demo: {err:#}");
     }
+    update_oled(&mut display, "BLE SCANNING", "15 SECONDS");
     if let Err(err) = ble_demo() {
         warn!("BLE demo: {err:#}");
     }
     if let Some(sensor) = &mut temperature {
         sensor.shutdown()?;
     }
-    info!("Onboard demos finished; reset to repeat. No external peripherals initialized.");
+    info!("Radio demos finished; OLED now shows uptime and heap. Reset to repeat scans.");
     loop {
         let system = platform::system_info()?;
+        update_oled(
+            &mut display,
+            &format!("UP {} S", system.uptime_ms / 1000),
+            &format!("HEAP {} B", system.free_heap_bytes),
+        );
         info!(
             "Uptime={} ms free_heap={}",
             system.uptime_ms, system.free_heap_bytes

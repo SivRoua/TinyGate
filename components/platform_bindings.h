@@ -4,3 +4,4 @@
 #include "tg_wifi.h"
 #include "tg_temperature.h"
 #include "tg_system.h"
+#include "tg_display.h"

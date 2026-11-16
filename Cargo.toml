@@ -12,10 +12,16 @@ harness = false
 
 [profile.release]
 opt-level = "s"
+lto = "fat"
+codegen-units = 1
 
 [profile.dev]
 debug = true
 opt-level = "z"
+# Remove unused esp-idf-hal legacy I2C references before native archive linking.
+# Without LTO, legacy constructors can survive section GC and abort on boot.
+lto = "fat"
+codegen-units = 1
 
 [dependencies]
 log = "0.4"
