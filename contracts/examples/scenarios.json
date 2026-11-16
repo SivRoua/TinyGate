@@ -1,0 +1,473 @@
+[
+  {
+    "name": "device_one",
+    "schema": "../schemas/messages.schema.json#/$defs/Device",
+    "payload": {
+      "device_id": "actuator_01",
+      "gateway_id": "gw_01",
+      "name": "模拟灯一",
+      "protocol": "ble",
+      "online": true,
+      "last_seen_at_ms": 1794528000000,
+      "capabilities": {
+        "1": {
+          "properties": {
+            "power": {
+              "type": "boolean",
+              "readable": true,
+              "writable": true
+            }
+          },
+          "actions": [
+            "set_power"
+          ]
+        }
+      },
+      "reported_state": {
+        "1": {
+          "power": false
+        }
+      },
+      "state_revision": 42
+    },
+    "expected": "显示关闭状态"
+  },
+  {
+    "name": "device_two",
+    "schema": "../schemas/messages.schema.json#/$defs/Device",
+    "payload": {
+      "device_id": "actuator_02",
+      "gateway_id": "gw_01",
+      "name": "模拟灯二",
+      "protocol": "ble",
+      "online": true,
+      "last_seen_at_ms": 1794528000000,
+      "capabilities": {
+        "1": {
+          "properties": {
+            "power": {
+              "type": "boolean",
+              "readable": true,
+              "writable": true
+            }
+          },
+          "actions": [
+            "set_power"
+          ]
+        }
+      },
+      "reported_state": {
+        "1": {
+          "power": false
+        }
+      },
+      "state_revision": 42
+    },
+    "expected": "独立寻址，不改变actuator_01"
+  },
+  {
+    "name": "http_control",
+    "schema": "../schemas/messages.schema.json#/$defs/CommandRequest",
+    "payload": {
+      "endpoint": "1",
+      "action": "set_power",
+      "params": {
+        "power": true
+      },
+      "timeout_ms": 5000
+    },
+    "expected": "返回202及cmd_001",
+    "http": {
+      "method": "POST",
+      "path": "/api/v1/devices/actuator_01/commands",
+      "headers": {
+        "Idempotency-Key": "op_001"
+      }
+    }
+  },
+  {
+    "name": "http_queued",
+    "schema": "../schemas/messages.schema.json#/$defs/Command",
+    "payload": {
+      "command_id": "cmd_001",
+      "gateway_id": "gw_01",
+      "device_id": "actuator_01",
+      "endpoint": "1",
+      "action": "set_power",
+      "params": {
+        "power": true
+      },
+      "status": "queued",
+      "issued_at_ms": 1794528000000,
+      "expires_at_ms": 1794528005000,
+      "updated_at_ms": 1794528000000,
+      "command_revision": 1,
+      "reported_state": null,
+      "error": null
+    },
+    "expected": "前端显示执行中",
+    "http": {
+      "status": 202
+    }
+  },
+  {
+    "name": "mqtt_command",
+    "schema": "../schemas/messages.schema.json#/$defs/GatewayCommand",
+    "payload": {
+      "schema_version": 1,
+      "command_id": "cmd_001",
+      "gateway_id": "gw_01",
+      "device_id": "actuator_01",
+      "endpoint": "1",
+      "action": "set_power",
+      "params": {
+        "power": true
+      },
+      "issued_at_ms": 1794528000000,
+      "expires_at_ms": 1794528005000
+    },
+    "expected": "网关校验并接收"
+  },
+  {
+    "name": "mqtt_accepted",
+    "schema": "../schemas/messages.schema.json#/$defs/CommandResult",
+    "payload": {
+      "schema_version": 1,
+      "gateway_id": "gw_01",
+      "command_id": "cmd_001",
+      "device_id": "actuator_01",
+      "endpoint": "1",
+      "result_seq": 1,
+      "status": "accepted",
+      "reported_state": null,
+      "error": null
+    },
+    "expected": "仅受理，不更新实际power"
+  },
+  {
+    "name": "mqtt_success",
+    "schema": "../schemas/messages.schema.json#/$defs/CommandResult",
+    "payload": {
+      "schema_version": 1,
+      "gateway_id": "gw_01",
+      "command_id": "cmd_001",
+      "device_id": "actuator_01",
+      "endpoint": "1",
+      "result_seq": 2,
+      "status": "succeeded",
+      "reported_state": {
+        "power": true
+      },
+      "error": null
+    },
+    "expected": "设备已确认目标状态"
+  },
+  {
+    "name": "mqtt_failure",
+    "schema": "../schemas/messages.schema.json#/$defs/CommandResult",
+    "payload": {
+      "schema_version": 1,
+      "gateway_id": "gw_01",
+      "command_id": "cmd_001",
+      "device_id": "actuator_01",
+      "endpoint": "1",
+      "result_seq": 2,
+      "status": "failed",
+      "reported_state": null,
+      "error": {
+        "code": "DEVICE_TIMEOUT",
+        "message": "设备未响应"
+      }
+    },
+    "expected": "失败，显示错误"
+  },
+  {
+    "name": "mqtt_clock_unsynced",
+    "schema": "../schemas/messages.schema.json#/$defs/CommandResult",
+    "payload": {
+      "schema_version": 1,
+      "gateway_id": "gw_01",
+      "command_id": "cmd_001",
+      "device_id": "actuator_01",
+      "endpoint": "1",
+      "result_seq": 1,
+      "status": "failed",
+      "reported_state": null,
+      "error": {
+        "code": "CLOCK_UNSYNCED",
+        "message": "网关时间未同步"
+      }
+    },
+    "expected": "不执行命令"
+  },
+  {
+    "name": "http_offline",
+    "schema": "../schemas/messages.schema.json#/$defs/ApiError",
+    "payload": {
+      "request_id": "req_002",
+      "error": {
+        "code": "DEVICE_OFFLINE",
+        "message": "设备当前离线"
+      }
+    },
+    "expected": "不创建命令",
+    "http": {
+      "status": 409
+    }
+  },
+  {
+    "name": "command_expired",
+    "schema": "../schemas/messages.schema.json#/$defs/Command",
+    "payload": {
+      "command_id": "cmd_001",
+      "gateway_id": "gw_01",
+      "device_id": "actuator_01",
+      "endpoint": "1",
+      "action": "set_power",
+      "params": {
+        "power": true
+      },
+      "status": "expired",
+      "issued_at_ms": 1794528000000,
+      "expires_at_ms": 1794528005000,
+      "updated_at_ms": 1794528005000,
+      "command_revision": 3,
+      "reported_state": null,
+      "error": {
+        "code": "COMMAND_EXPIRED",
+        "message": "有效期内未确认执行结果"
+      }
+    },
+    "expected": "显示未确认执行结果；晚到反馈不改变终态"
+  },
+  {
+    "name": "http_duplicate",
+    "schema": "../schemas/messages.schema.json#/$defs/CommandRequest",
+    "payload": {
+      "endpoint": "1",
+      "action": "set_power",
+      "params": {
+        "power": true
+      },
+      "timeout_ms": 5000
+    },
+    "expected": "同用户设备及op_001复用cmd_001，不产生第二条命令",
+    "http": {
+      "method": "POST",
+      "path": "/api/v1/devices/actuator_01/commands",
+      "headers": {
+        "Idempotency-Key": "op_001"
+      }
+    }
+  },
+  {
+    "name": "http_duplicate_conflict",
+    "schema": "../schemas/messages.schema.json#/$defs/ApiError",
+    "payload": {
+      "request_id": "req_003",
+      "error": {
+        "code": "IDEMPOTENCY_CONFLICT",
+        "message": "同键请求参数不同"
+      }
+    },
+    "expected": "同op_001改为power=false时409",
+    "http": {
+      "status": 409
+    }
+  },
+  {
+    "name": "property_live",
+    "schema": "../schemas/messages.schema.json#/$defs/Event",
+    "payload": {
+      "schema_version": 1,
+      "event_id": "gw_01:boot_07:183",
+      "gateway_id": "gw_01",
+      "device_id": "sensor_01",
+      "boot_id": "boot_07",
+      "boot_counter": 7,
+      "seq": 183,
+      "type": "property_reported",
+      "occurred_at_ms": null,
+      "uptime_ms": 62000,
+      "replayed": false,
+      "data": {
+        "endpoint": "1",
+        "property": "temperature",
+        "value": 28.5
+      }
+    },
+    "expected": "保存事件；按boot_counter及seq更新属性"
+  },
+  {
+    "name": "property_replay",
+    "schema": "../schemas/messages.schema.json#/$defs/Event",
+    "payload": {
+      "schema_version": 1,
+      "event_id": "gw_01:boot_07:183",
+      "gateway_id": "gw_01",
+      "device_id": "sensor_01",
+      "boot_id": "boot_07",
+      "boot_counter": 7,
+      "seq": 183,
+      "type": "property_reported",
+      "occurred_at_ms": null,
+      "uptime_ms": 62000,
+      "replayed": true,
+      "data": {
+        "endpoint": "1",
+        "property": "temperature",
+        "value": 28.5
+      }
+    },
+    "expected": "同一event_id不重复入库；不触发实时自动化"
+  },
+  {
+    "name": "presence",
+    "schema": "../schemas/messages.schema.json#/$defs/Event",
+    "payload": {
+      "schema_version": 1,
+      "event_id": "gw_01:boot_07:184",
+      "gateway_id": "gw_01",
+      "device_id": "actuator_01",
+      "boot_id": "boot_07",
+      "boot_counter": 7,
+      "seq": 184,
+      "type": "device_presence",
+      "occurred_at_ms": null,
+      "uptime_ms": 62000,
+      "replayed": false,
+      "data": {
+        "online": true
+      }
+    },
+    "expected": "更新设备在线状态"
+  },
+  {
+    "name": "gateway_online",
+    "schema": "../schemas/messages.schema.json#/$defs/GatewayStatus",
+    "payload": {
+      "schema_version": 1,
+      "gateway_id": "gw_01",
+      "boot_id": "boot_07",
+      "boot_counter": 7,
+      "connection_id": "conn_09",
+      "connection_seq": 9,
+      "online": true,
+      "reported_at_ms": 1794528000000,
+      "firmware_version": "0.1.0"
+    },
+    "expected": "以新心跳确认在线"
+  },
+  {
+    "name": "gateway_lwt",
+    "schema": "../schemas/messages.schema.json#/$defs/GatewayStatus",
+    "payload": {
+      "schema_version": 1,
+      "gateway_id": "gw_01",
+      "boot_id": "boot_07",
+      "boot_counter": 7,
+      "connection_id": "conn_09",
+      "connection_seq": 9,
+      "online": false,
+      "reported_at_ms": null,
+      "firmware_version": "0.1.0"
+    },
+    "expected": "仅当前连接可置离线"
+  },
+  {
+    "name": "websocket_device",
+    "schema": "../schemas/messages.schema.json#/$defs/RealtimeNotification",
+    "payload": {
+      "schema_version": 1,
+      "type": "device.state_changed",
+      "data": {
+        "device_id": "actuator_01",
+        "gateway_id": "gw_01",
+        "name": "模拟灯一",
+        "protocol": "ble",
+        "online": true,
+        "last_seen_at_ms": 1794528000000,
+        "capabilities": {
+          "1": {
+            "properties": {
+              "power": {
+                "type": "boolean",
+                "readable": true,
+                "writable": true
+              }
+            },
+            "actions": [
+              "set_power"
+            ]
+          }
+        },
+        "reported_state": {
+          "1": {
+            "power": true
+          }
+        },
+        "state_revision": 43
+      }
+    },
+    "expected": "前端应用更高修订号的完整快照"
+  },
+  {
+    "name": "websocket_command",
+    "schema": "../schemas/messages.schema.json#/$defs/RealtimeNotification",
+    "payload": {
+      "schema_version": 1,
+      "type": "command.updated",
+      "data": {
+        "command_id": "cmd_001",
+        "gateway_id": "gw_01",
+        "device_id": "actuator_01",
+        "endpoint": "1",
+        "action": "set_power",
+        "params": {
+          "power": true
+        },
+        "status": "succeeded",
+        "issued_at_ms": 1794528000000,
+        "expires_at_ms": 1794528005000,
+        "updated_at_ms": 1794528001000,
+        "command_revision": 3,
+        "reported_state": {
+          "power": true
+        },
+        "error": null
+      }
+    },
+    "expected": "结束执行中显示"
+  },
+  {
+    "name": "websocket_auth",
+    "schema": "../schemas/messages.schema.json#/$defs/ClientFrame",
+    "payload": {
+      "type": "authenticate",
+      "access_token": "mock-token-not-for-production"
+    },
+    "expected": "模拟身份通过后才允许订阅"
+  },
+  {
+    "name": "websocket_subscribe",
+    "schema": "../schemas/messages.schema.json#/$defs/ClientFrame",
+    "payload": {
+      "type": "subscribe",
+      "gateway_ids": [
+        "gw_01"
+      ]
+    },
+    "expected": "逐个检查权限"
+  },
+  {
+    "name": "websocket_subscribed",
+    "schema": "../schemas/messages.schema.json#/$defs/ServerControlFrame",
+    "payload": {
+      "type": "subscribed",
+      "gateway_ids": [
+        "gw_01"
+      ]
+    },
+    "expected": "随后请求HTTP快照"
+  }
+]

@@ -1,0 +1,1016 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TinyGate v1 shared models and messages",
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "GatewayId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "ApiError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/Error"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "error",
+        "request_id"
+      ]
+    },
+    "PropertyCapability": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "boolean",
+            "number",
+            "string"
+          ]
+        },
+        "readable": {
+          "type": "boolean"
+        },
+        "writable": {
+          "type": "boolean"
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "readable",
+        "writable"
+      ]
+    },
+    "EndpointCapability": {
+      "type": "object",
+      "properties": {
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/PropertyCapability"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "properties",
+        "actions"
+      ]
+    },
+    "Device": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": [
+            "ble",
+            "zigbee"
+          ]
+        },
+        "online": {
+          "type": "boolean"
+        },
+        "last_seen_at_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/EndpointCapability"
+          }
+        },
+        "reported_state": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "boolean",
+                "number",
+                "string"
+              ]
+            }
+          }
+        },
+        "state_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "device_id",
+        "gateway_id",
+        "name",
+        "protocol",
+        "online",
+        "last_seen_at_ms",
+        "capabilities",
+        "reported_state",
+        "state_revision"
+      ]
+    },
+    "Gateway": {
+      "type": "object",
+      "properties": {
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "online": {
+          "type": "boolean"
+        },
+        "last_seen_at_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "firmware_version": {
+          "type": "string"
+        },
+        "state_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "gateway_id",
+        "name",
+        "online",
+        "last_seen_at_ms",
+        "firmware_version",
+        "state_revision"
+      ]
+    },
+    "CommandRequest": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "action": {
+          "const": "set_power"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "power": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 5000
+        }
+      },
+      "required": [
+        "endpoint",
+        "action",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "Command": {
+      "type": "object",
+      "properties": {
+        "command_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "action": {
+          "const": "set_power"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "power": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "dispatched",
+            "accepted",
+            "succeeded",
+            "failed",
+            "expired"
+          ]
+        },
+        "issued_at_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "expires_at_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "updated_at_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "command_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "reported_state": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "power": {
+              "type": "boolean"
+            }
+          }
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "command_id",
+        "gateway_id",
+        "device_id",
+        "endpoint",
+        "action",
+        "params",
+        "status",
+        "issued_at_ms",
+        "expires_at_ms",
+        "updated_at_ms",
+        "command_revision",
+        "reported_state",
+        "error"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "failed",
+                  "expired"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "error": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "GatewayCommand": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "command_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "action": {
+          "const": "set_power"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "power": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        "issued_at_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "expires_at_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "schema_version",
+        "command_id",
+        "gateway_id",
+        "device_id",
+        "endpoint",
+        "action",
+        "params",
+        "issued_at_ms",
+        "expires_at_ms"
+      ]
+    },
+    "Event": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "boot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "boot_counter": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "property_reported",
+            "device_presence",
+            "alarm"
+          ]
+        },
+        "occurred_at_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "uptime_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "replayed": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "gateway_id",
+        "device_id",
+        "boot_id",
+        "boot_counter",
+        "seq",
+        "type",
+        "occurred_at_ms",
+        "uptime_ms",
+        "replayed",
+        "data"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "property_reported"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "endpoint": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "property": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "value": {
+                    "type": [
+                      "boolean",
+                      "number",
+                      "string"
+                    ]
+                  }
+                },
+                "required": [
+                  "endpoint",
+                  "property",
+                  "value"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "device_presence"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "online": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "online"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "alarm"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "StoredEvent": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Event"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "received_at_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "received_at_ms"
+          ]
+        }
+      ]
+    },
+    "GatewayStatus": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "boot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "boot_counter": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "connection_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "connection_seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "online": {
+          "type": "boolean"
+        },
+        "reported_at_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "firmware_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "gateway_id",
+        "boot_id",
+        "boot_counter",
+        "connection_id",
+        "connection_seq",
+        "online",
+        "reported_at_ms",
+        "firmware_version"
+      ]
+    },
+    "CommandResult": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "gateway_id": {
+          "$ref": "#/$defs/GatewayId"
+        },
+        "command_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "result_seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "succeeded",
+            "failed",
+            "expired"
+          ]
+        },
+        "reported_state": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "power": {
+              "type": "boolean"
+            }
+          }
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "gateway_id",
+        "command_id",
+        "device_id",
+        "endpoint",
+        "result_seq",
+        "status",
+        "reported_state",
+        "error"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "failed",
+                  "expired"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "error": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "succeeded"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reported_state": {
+                "type": "object",
+                "properties": {
+                  "power": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "power"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "RealtimeNotification": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "schema_version": {
+              "const": 1
+            },
+            "type": {
+              "const": "device.state_changed"
+            },
+            "data": {
+              "$ref": "#/$defs/Device"
+            }
+          },
+          "required": [
+            "schema_version",
+            "type",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schema_version": {
+              "const": 1
+            },
+            "type": {
+              "const": "gateway.status_changed"
+            },
+            "data": {
+              "$ref": "#/$defs/Gateway"
+            }
+          },
+          "required": [
+            "schema_version",
+            "type",
+            "data"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "schema_version": {
+              "const": 1
+            },
+            "type": {
+              "const": "command.updated"
+            },
+            "data": {
+              "$ref": "#/$defs/Command"
+            }
+          },
+          "required": [
+            "schema_version",
+            "type",
+            "data"
+          ]
+        }
+      ]
+    },
+    "ClientFrame": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "authenticate"
+            },
+            "access_token": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "type",
+            "access_token"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "subscribe"
+            },
+            "gateway_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/GatewayId"
+              },
+              "maxItems": 100,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "type",
+            "gateway_ids"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "ping"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "ServerControlFrame": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "authenticated"
+            },
+            "schema_version": {
+              "const": 1
+            }
+          },
+          "required": [
+            "type",
+            "schema_version"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "subscribed"
+            },
+            "gateway_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/GatewayId"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "gateway_ids"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "error"
+            },
+            "code": {
+              "type": "string",
+              "enum": [
+                "FORBIDDEN",
+                "INVALID_ARGUMENT"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "code"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "pong"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Event"
+    },
+    {
+      "$ref": "#/$defs/GatewayCommand"
+    },
+    {
+      "$ref": "#/$defs/GatewayStatus"
+    },
+    {
+      "$ref": "#/$defs/CommandResult"
+    },
+    {
+      "$ref": "#/$defs/RealtimeNotification"
+    },
+    {
+      "$ref": "#/$defs/ClientFrame"
+    },
+    {
+      "$ref": "#/$defs/ServerControlFrame"
+    }
+  ]
+}

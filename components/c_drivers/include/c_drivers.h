@@ -42,7 +42,6 @@ esp_err_t tg_zigbee_coord_init(void);
 // ==========================================
 // 5. BLE Central / Observer
 // ==========================================
-esp_err_t tg_ble_init(void);
 
 #ifdef __cplusplus
 }

@@ -78,4 +78,11 @@
   - 模块化暴露硬件接口：UPS 电源与电池 ADC/中断采样、OLED SSD1306 显示流、MicroSD 存储挂载、Zigbee 3.0 协调器与 BLE 接入能力。
   - 在 `Cargo.toml` 中配置 `package.metadata.esp-idf-sys.extra_components` 联动 ESP-IDF 构建体系，由 Rust `src/c_drivers.rs` 统一提供类型安全封装。
 
+### 2026-11-13 网关、云端与客户端通信契约
+
+- Rust 网关通过 MQTT/JSON 与云端通信；Web 与微信小程序通过 HTTPS/JSON 共用后端 API，WSS 提供状态通知。
+- 接口、公共模型、命令生命周期、错误码及联调样例统一维护在 [contracts/README.md](contracts/README.md)。该目录是协作开发基线，不表示功能已经实现。
+- 硬件/C 负责设备协议映射，Rust 负责网关消息与执行语义，云端负责 API、权限与客户端；跨边界修改共同确认并同步更新契约与样例。
+- 首期通过两台 ESP32-S3 BLE 执行模拟器验证独立控制、实际反馈、超时和重复请求；当前扫描接口不能视为已完成 GATT 控制。
+
 

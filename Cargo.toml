@@ -27,4 +27,4 @@ embuild = { version = "0.33", features = ["espidf"] }
 
 [[package.metadata.esp-idf-sys.extra_components]]
 component_dirs = ["components"]
-bindings_header = "components/c_drivers/include/c_drivers.h"
+bindings_header = "components/platform_bindings.h"

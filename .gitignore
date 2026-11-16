@@ -1,29 +1,65 @@
-# ESP-IDF 编译构建与配置产物
+# ESP-IDF / CMake 构建产物（保留 sdkconfig.defaults、sdkconfig.ci 和 dependencies.lock）
 build/
+build-*/
+managed_components/
 sdkconfig
 sdkconfig.old
-sdkconfig.ci
-managed_components/
-dependencies.lock
+sdkconfig.*.old
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+.ninja_deps
+.ninja_log
 
-# Rust / Cargo 构建产物 (针对 Rust 规则引擎模块)
-**/target/
+# Rust / Cargo 构建缓存（应用工程保留 Cargo.lock，固定依赖版本）
+target/
 **/*.rs.bk
-Cargo.lock
 
-# Python 缓存与虚拟环境 (针对云端高级引擎)
+# Python 缓存、测试结果与虚拟环境
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
 .Python
-env/
-venv/
 .venv/
+venv/
+env/
 ENV/
-*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
 
-# 编辑器与 IDE 配置
+# Web / 微信小程序依赖及生成物（保留 package 锁文件）
+node_modules/
+dist/
+.next/
+.nuxt/
+.output/
+.vite/
+.turbo/
+coverage/
+*.tsbuildinfo
+miniprogram_npm/
+project.private.config.json
+
+# 本机配置与凭据（保留可分享的示例）
+.cargo/config.toml
+*.local.toml
+secrets.toml
+wifi_credentials.h
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+!.env.*.example
+
+# 编辑器配置与临时文件
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -33,23 +69,14 @@ ENV/
 *.swp
 *.swo
 *~
+*.tmp
+*.log
 
-# 操作系统临时文件
+# 操作系统文件
 .DS_Store
 Thumbs.db
 ehthumbs.db
 [Dd]esktop.ini
 
-# 敏感本地配置文件 (防止私网 Wi-Fi 或云端凭证泄露)
-*.local.toml
-secrets.toml
-wifi_credentials.h
-
-# AI Memory Keeper
+# 本机开发工具状态
 .ai-memory-keeper/
-
-
-
-# Added by cargo
-
-/target
