@@ -30,7 +30,6 @@ bool tg_sdcard_is_mounted(void);
 // ==========================================
 // 4. Zigbee 3.0 Coordinator (802.15.4)
 // ==========================================
-esp_err_t tg_zigbee_coord_init(void);
 
 // ==========================================
 // 5. BLE Central / Observer

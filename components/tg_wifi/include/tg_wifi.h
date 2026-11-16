@@ -22,6 +22,8 @@ typedef struct {
     bool disconnecting;
     bool associated;
     bool has_ip;
+    bool ap_active;
+    uint16_t ap_clients;
     uint8_t ipv4[4];
     int8_t rssi;       /* Valid only when associated */
     uint16_t total_aps;
@@ -43,6 +45,14 @@ esp_err_t tg_wifi_connect(const char *ssid, const char *password);
 esp_err_t tg_wifi_disconnect(void);
 esp_err_t tg_wifi_get_status(tg_wifi_status_t *status);
 esp_err_t tg_wifi_deinit(void);
+typedef struct {char ssid[33];char password[64];uint8_t version;} tg_wifi_credentials_t;
+/* Explicit persistence; not called automatically. NVS is not encrypted by this API. */
+esp_err_t tg_wifi_save_credentials(const char *ssid,const char *password);
+esp_err_t tg_wifi_load_credentials(tg_wifi_credentials_t *credentials);
+esp_err_t tg_wifi_forget_credentials(void);
+/* WPA2 SoftAP for a future provisioning UI; no HTTP portal is started here. */
+esp_err_t tg_wifi_ap_start(const char *ssid,const char *password,uint8_t channel);
+esp_err_t tg_wifi_ap_stop(void);
 #ifdef __cplusplus
 }
 #endif

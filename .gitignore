@@ -14,6 +14,8 @@ compile_commands.json
 
 # Rust / Cargo 构建缓存（应用工程保留 Cargo.lock，固定依赖版本）
 target/
+# Local test captures/results (keep checked-in test fixtures and dependency locks)
+/test-results/
 **/*.rs.bk
 
 # Python 缓存、测试结果与虚拟环境
