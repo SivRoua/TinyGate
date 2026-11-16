@@ -15,11 +15,6 @@ esp_err_t tg_c_drivers_init(void)
         ESP_LOGW(TAG, "tg_ups_init returned %d", err);
     }
 
-    err = tg_display_init();
-    if (err != ESP_OK) {
-        ESP_LOGW(TAG, "tg_display_init returned %d", err);
-    }
-
     err = tg_sdcard_init();
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "tg_sdcard_init returned %d", err);
@@ -48,30 +43,6 @@ bool tg_ups_is_mains_power_loss(void)
 {
     // Return false (normal external power)
     return false;
-}
-
-// ==========================================
-// 2. 0.96 OLED Display (SSD1306, I2C)
-// ==========================================
-esp_err_t tg_display_init(void)
-{
-    ESP_LOGI(TAG, "[OLED] SSD1306 I2C display driver init...");
-    return ESP_OK;
-}
-
-esp_err_t tg_display_clear(void)
-{
-    ESP_LOGI(TAG, "[OLED] Clear screen");
-    return ESP_OK;
-}
-
-esp_err_t tg_display_show_status(const char *title, const char *line1, const char *line2)
-{
-    ESP_LOGI(TAG, "[OLED Display] [%s] %s | %s",
-             title ? title : "",
-             line1 ? line1 : "",
-             line2 ? line2 : "");
-    return ESP_OK;
 }
 
 // ==========================================

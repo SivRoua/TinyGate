@@ -1,0 +1,14 @@
+menu "TinyGate OLED"
+    config TG_DISPLAY_SDA_GPIO
+        int "OLED SDA GPIO"
+        default 20
+        range 0 30
+    config TG_DISPLAY_SCL_GPIO
+        int "OLED SCL GPIO"
+        default 19
+        range 0 30
+    config TG_DISPLAY_ADDRESS
+        int "7-bit address (0: probe 0x3C then 0x3D)"
+        default 0
+        range 0 127
+endmenu
