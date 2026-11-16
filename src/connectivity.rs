@@ -63,16 +63,7 @@ fn command(
     }
     Ok(())
 }
-pub fn run(rgb: &mut Option<Rgb>, button: &mut Option<crate::button::Button>) -> Result<()> {
-    let mut wifi = Wifi::new()?;
-    let mut ble = Scanner::new()?;
-    let deadline = Instant::now() + Duration::from_secs(10);
-    while !ble.status()?.ready {
-        if Instant::now() > deadline {
-            bail!("BLE sync timeout");
-        }
-        std::thread::sleep(Duration::from_millis(20));
-    }
+pub(crate) fn input() -> Result<mpsc::Receiver<String>> {
     let (tx, rx) = mpsc::sync_channel::<String>(8);
     std::thread::Builder::new()
         .name("serial_input".into())
@@ -106,6 +97,19 @@ pub fn run(rgb: &mut Option<Rgb>, button: &mut Option<crate::button::Button>) ->
                 }
             }
         })?;
+    Ok(rx)
+}
+pub fn run(rgb: &mut Option<Rgb>, button: &mut Option<crate::button::Button>) -> Result<()> {
+    let mut wifi = Wifi::new()?;
+    let mut ble = Scanner::new()?;
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !ble.status()?.ready {
+        if Instant::now() > deadline {
+            bail!("BLE sync timeout");
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let rx = input()?;
     info!("Connectivity command bench ready; enter help. Zigbee is not started.");
     let mut id = 0u32;
     let mut generation = 0;

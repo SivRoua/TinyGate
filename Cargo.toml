@@ -32,6 +32,7 @@ anyhow = "1.0"
 default = ["zigbee-demo"]
 zigbee-demo = []
 connectivity-demo = []
+coexist-test = []
 
 [build-dependencies]
 embuild = { version = "0.33", features = ["espidf"] }

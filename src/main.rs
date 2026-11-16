@@ -3,6 +3,8 @@ mod ble_ad;
 mod button;
 #[allow(dead_code)]
 mod c_drivers;
+mod coexist;
+mod coexist_stats;
 mod connectivity;
 mod console_parse;
 mod display;
@@ -376,6 +378,9 @@ fn main() -> Result<()> {
         system.minimum_free_heap_bytes,
         system.largest_free_block_bytes
     );
+    if cfg!(feature = "coexist-test") {
+        return coexist::run(&mut display, &mut button);
+    }
     if cfg!(feature = "connectivity-demo") {
         return connectivity::run(&mut rgb, &mut button);
     }

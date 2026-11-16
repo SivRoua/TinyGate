@@ -26,6 +26,7 @@ typedef struct {
     uint16_t attribute;
     uint16_t profile;
     int32_t value;           /* temperature: 0.01 C; OnOff: 0/1 */
+    uint64_t test_payload;   /* Test-only attr 0xF000: boot-session high32, sequence low32 */
     int32_t status;          /* Native SDK/ZCL status; domain depends on kind */
     uint32_t request_id;     /* Supplied ID, only on TX_CONFIRM */
     uint8_t tsn;            /* Native ZCL transaction sequence number */

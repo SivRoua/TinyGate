@@ -160,6 +160,10 @@ static void attribute_event(const ezb_zcl_cmd_hdr_t *h, uint16_t attribute,
     event.attribute=attribute;
     event.status=status;
     event.is_report=report;
+    if (!status && attribute==0xf000 && h->cluster_id==TG_ZB_TEMPERATURE_CLUSTER &&
+        type==EZB_ZCL_ATTR_TYPE_UINT64 && value) {
+        memcpy(&event.test_payload,value,8);emit(event);return;
+    }
     if (!status && attribute == 0 && value) {
         if (h->cluster_id == TG_ZB_TEMPERATURE_CLUSTER && type == EZB_ZCL_ATTR_TYPE_INT16) {
             int16_t temperature;
