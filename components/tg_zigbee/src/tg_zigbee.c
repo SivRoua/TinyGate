@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 #include "esp_log.h"
+#include "esp_coexist.h"
 #include "esp_zigbee.h"
 #include "ezbee/zha.h"
 
@@ -217,6 +218,13 @@ static void stack_task(void *arg)
     };
     esp_err_t err=esp_zigbee_init(&config);
     if (err) goto fail;
+#if CONFIG_ESP_COEX_SW_COEXIST_ENABLE && CONFIG_SOC_WIFI_SUPPORTED && CONFIG_SOC_IEEE802154_SUPPORTED
+    /* The config switch alone does not enable Wi-Fi/802.15.4 arbitration.
+     * Match the IDF Zigbee gateway's runtime opt-in before Wi-Fi can start. */
+    err=esp_coex_wifi_i154_enable();
+    if (err) goto fail;
+    ESP_LOGI(TAG,"Wi-Fi/802.15.4 coexistence enabled");
+#endif
     ezb_aps_secur_enable_distributed_security(false);
     if ((err=esp_zigbee_err_to_esp(ezb_bdb_set_primary_channel_set(1UL << CONFIG_TG_ZIGBEE_CHANNEL)))) goto fail;
     if ((err=esp_zigbee_err_to_esp(ezb_bdb_set_secondary_channel_set(0)))) goto fail;
