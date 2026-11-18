@@ -9,6 +9,8 @@ mod platform;
 #[allow(dead_code)]
 mod rgb;
 #[allow(dead_code)]
+mod sdcard;
+#[allow(dead_code)]
 mod zigbee;
 
 use anyhow::{bail, Result};
