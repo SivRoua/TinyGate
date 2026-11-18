@@ -1,9 +1,15 @@
 mod ble;
 mod ble_ad;
 #[allow(dead_code)]
+mod button;
+#[allow(dead_code)]
 mod c_drivers;
 mod display;
 mod platform;
+#[allow(dead_code)]
+mod rgb;
+#[allow(dead_code)]
+mod zigbee;
 
 use anyhow::{bail, Result};
 use ble::{Event, Scanner};

@@ -10,6 +10,7 @@ static portMUX_TYPE s_lock = portMUX_INITIALIZER_UNLOCKED;
 static tg_wifi_status_t s_status;
 static tg_wifi_ap_t s_aps[TG_WIFI_MAX_APS];
 static esp_netif_t *s_netif;
+static esp_netif_t *s_ap;
 static esp_event_handler_instance_t s_wifi_handler, s_ip_handler;
 static bool s_driver, s_started, s_want_connection;
 
@@ -54,7 +55,11 @@ static void on_event(void *arg, esp_event_base_t base, int32_t id, void *data)
         return;
     }
     portENTER_CRITICAL(&s_lock);
-    if (base == WIFI_EVENT && id == WIFI_EVENT_STA_CONNECTED && s_want_connection) {
+    if(base==WIFI_EVENT && id==WIFI_EVENT_AP_STACONNECTED) {
+        if(s_status.ap_clients!=UINT16_MAX) ++s_status.ap_clients;
+    } else if(base==WIFI_EVENT && id==WIFI_EVENT_AP_STADISCONNECTED) {
+        if(s_status.ap_clients) --s_status.ap_clients;
+    } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_CONNECTED && s_want_connection) {
         s_status.associated = true;
         s_status.connecting = false;
         s_status.disconnect_reason = 0;
@@ -222,6 +227,42 @@ esp_err_t tg_wifi_get_status(tg_wifi_status_t *status)
     return ESP_OK;
 }
 
+esp_err_t tg_wifi_set_power_save(uint8_t mode)
+{
+    if (mode > 2) return ESP_ERR_INVALID_ARG;
+    if (!s_driver || !s_started) return ESP_ERR_INVALID_STATE;
+    wifi_ps_type_t policy = mode == 0 ? WIFI_PS_NONE :
+                            mode == 1 ? WIFI_PS_MIN_MODEM : WIFI_PS_MAX_MODEM;
+    return record_error(esp_wifi_set_ps(policy));
+}
+
+esp_err_t tg_wifi_get_power_save(uint8_t *mode)
+{
+    if (!mode) return ESP_ERR_INVALID_ARG;
+    if (!s_driver || !s_started) return ESP_ERR_INVALID_STATE;
+    wifi_ps_type_t policy;
+    esp_err_t err = esp_wifi_get_ps(&policy);
+    if (err == ESP_OK) *mode = (uint8_t)policy;
+    return err;
+}
+
+esp_err_t tg_wifi_set_tx_power(uint8_t quarter_dbm)
+{
+    if (quarter_dbm < 8 || quarter_dbm > 84) return ESP_ERR_INVALID_ARG;
+    if (!s_driver || !s_started) return ESP_ERR_INVALID_STATE;
+    return record_error(esp_wifi_set_max_tx_power((int8_t)quarter_dbm));
+}
+
+esp_err_t tg_wifi_get_tx_power(uint8_t *quarter_dbm)
+{
+    if (!quarter_dbm) return ESP_ERR_INVALID_ARG;
+    if (!s_driver || !s_started) return ESP_ERR_INVALID_STATE;
+    int8_t value = 0;
+    esp_err_t err = esp_wifi_get_max_tx_power(&value);
+    if (err == ESP_OK) *quarter_dbm = (uint8_t)value;
+    return err;
+}
+
 esp_err_t tg_wifi_deinit(void)
 {
     if (!s_driver && !s_netif) return ESP_ERR_INVALID_STATE;
@@ -244,9 +285,39 @@ esp_err_t tg_wifi_deinit(void)
         s_driver = false;
     }
     if (s_netif) { esp_netif_destroy_default_wifi(s_netif); s_netif = NULL; }
+    if (s_ap) {esp_netif_destroy_default_wifi(s_ap);s_ap=NULL;}
     portENTER_CRITICAL(&s_lock);
     memset(&s_status, 0, sizeof(s_status));
     s_want_connection = false;
     portEXIT_CRITICAL(&s_lock);
     return ESP_OK;
+}
+
+esp_err_t tg_wifi_ap_start(const char *ssid,const char *password,uint8_t channel)
+{
+    if(!ssid || !password || !*ssid || strnlen(ssid,33)>32 || strnlen(password,64)<8 ||
+        strnlen(password,64)>63 || channel<1 || channel>11) return ESP_ERR_INVALID_ARG;
+    tg_wifi_status_t status;tg_wifi_get_status(&status);
+    if(!status.initialized || status.ap_active || status.scanning || status.connecting || status.disconnecting || status.associated)
+        return ESP_ERR_INVALID_STATE;
+    if(!s_ap) s_ap=esp_netif_create_default_wifi_ap();
+    if(!s_ap) return ESP_ERR_NO_MEM;
+    wifi_config_t config={0};
+    config.ap.ssid_len=strlen(ssid);memcpy(config.ap.ssid,ssid,config.ap.ssid_len);
+    memcpy(config.ap.password,password,strlen(password));config.ap.channel=channel;
+    config.ap.authmode=WIFI_AUTH_WPA2_PSK;config.ap.max_connection=4;
+    esp_err_t err=esp_wifi_stop();if(err) return record_error(err);s_started=false;
+    err=esp_wifi_set_mode(WIFI_MODE_APSTA);
+    if(!err) err=esp_wifi_set_config(WIFI_IF_AP,&config);
+    if(!err) {err=esp_wifi_start();if(!err) s_started=true;}
+    if(err) {esp_wifi_set_mode(WIFI_MODE_STA);if(!esp_wifi_start()) s_started=true;return record_error(err);}
+    portENTER_CRITICAL(&s_lock);s_status.ap_active=true;++s_status.generation;portEXIT_CRITICAL(&s_lock);
+    return ESP_OK;
+}
+esp_err_t tg_wifi_ap_stop(void)
+{
+    if(!s_driver) return ESP_ERR_INVALID_STATE;
+    esp_err_t err=esp_wifi_set_mode(WIFI_MODE_STA);if(err) return record_error(err);
+    portENTER_CRITICAL(&s_lock);s_status.ap_active=false;s_status.ap_clients=0;
+    ++s_status.generation;portEXIT_CRITICAL(&s_lock);return ESP_OK;
 }
