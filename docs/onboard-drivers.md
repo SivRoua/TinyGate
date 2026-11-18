@@ -1,5 +1,11 @@
 # 无外设板上资源驱动（2026-11-14）
 
+> Wi-Fi 的显式凭据持久化、SoftAP，BLE GATT 和 GPIO8 RGB 已新增；
+> 请以 [通信与 RGB 联调说明](connectivity-and-rgb.md) 为当前接口依据。SD/UPS 继续搁置。
+
+> 当前默认固件为双 C6 Zigbee 联调模式。运行本页的 Wi-Fi/BLE/OLED 演示请使用
+> `cargo run --no-default-features`；参见 [Zigbee 联调](zigbee-bringup.md)。
+
 > 2026-11-16：已接入外部 OLED（SDA20/SCL19），显示启动、扫描阶段与运行状态。
 > 下文保留最初无外设版本说明；当前实现与测试见 [OLED 驱动](oled-driver.md)。
 

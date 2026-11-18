@@ -1,5 +1,8 @@
 # OLED SSD1306 驱动
 
+> 默认固件现运行 Zigbee 联调，OLED 显示节点温度与开关状态；
+> 本页原有 Wi-Fi/BLE 页面演示使用 `cargo run --no-default-features`。
+
 ## 启动冲突排查（2026-11-16）
 
 上板日志曾出现 `i2c: CONFLICT! driver_ng is not allowed to be used with this old driver`，
