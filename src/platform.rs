@@ -1,4 +1,4 @@
-//! Rust-side examples of consuming the public C driver interfaces.
+//! Rust wrappers for the board platform drivers.
 use anyhow::{bail, Result};
 use esp_idf_svc::sys;
 use std::ffi::CString;
@@ -106,8 +106,52 @@ impl Drop for Temperature {
 pub struct Wifi {
     lease: Lease,
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum WifiPowerSave {
+    None = 0,
+    Minimum = 1,
+    Maximum = 2,
+}
 #[allow(dead_code)]
 impl Wifi {
+    pub fn set_tx_power(&mut self, quarter_dbm: u8) -> Result<()> {
+        self.lease.ensure()?;
+        check(
+            unsafe { sys::tg_wifi_set_tx_power(quarter_dbm) },
+            "set Wi-Fi TX power",
+        )
+    }
+    pub fn tx_power(&self) -> Result<u8> {
+        self.lease.ensure()?;
+        let mut power = 0;
+        check(
+            unsafe { sys::tg_wifi_get_tx_power(&mut power) },
+            "get Wi-Fi TX power",
+        )?;
+        Ok(power)
+    }
+    pub fn set_power_save(&mut self, mode: WifiPowerSave) -> Result<()> {
+        self.lease.ensure()?;
+        check(
+            unsafe { sys::tg_wifi_set_power_save(mode as u8) },
+            "set Wi-Fi power save",
+        )
+    }
+    pub fn power_save(&self) -> Result<WifiPowerSave> {
+        self.lease.ensure()?;
+        let mut mode = 0;
+        check(
+            unsafe { sys::tg_wifi_get_power_save(&mut mode) },
+            "get Wi-Fi power save",
+        )?;
+        match mode {
+            0 => Ok(WifiPowerSave::None),
+            1 => Ok(WifiPowerSave::Minimum),
+            2 => Ok(WifiPowerSave::Maximum),
+            _ => bail!("Unknown Wi-Fi power save mode {mode}"),
+        }
+    }
     pub fn save_credentials(&self, ssid: &str, password: &str) -> Result<()> {
         self.lease.ensure()?;
         let ssid = CString::new(ssid)?;

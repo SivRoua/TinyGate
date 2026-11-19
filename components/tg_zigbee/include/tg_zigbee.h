@@ -45,8 +45,7 @@ typedef struct {
 
 /* Coordinator, channel 15, persistent dedicated zb_nvs. One application caller.
  * Startup is asynchronous; check ready. SDK accesses are lock-protected.
- * No shutdown/re-init API: this component runs for the lifetime of firmware.
- * Do not start Wi-Fi/BLE in the initial Zigbee-only test mode. */
+ * No shutdown/re-init API: this component runs for the lifetime of firmware. */
 esp_err_t tg_zigbee_init(void);
 esp_err_t tg_zigbee_get_status(tg_zigbee_status_t *status);
 esp_err_t tg_zigbee_poll_event(tg_zigbee_event_t *event);

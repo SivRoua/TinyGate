@@ -44,6 +44,14 @@ esp_err_t tg_wifi_scan_get_ap(uint16_t index, tg_wifi_ap_t *ap);
 esp_err_t tg_wifi_connect(const char *ssid, const char *password);
 esp_err_t tg_wifi_disconnect(void);
 esp_err_t tg_wifi_get_status(tg_wifi_status_t *status);
+/* Explicit runtime policy, not persisted. Modes follow NONE=0, MIN_MODEM=1,
+ * MAX_MODEM=2. The SDK default remains unchanged until the owner requests it. */
+esp_err_t tg_wifi_set_power_save(uint8_t mode);
+esp_err_t tg_wifi_get_power_save(uint8_t *mode);
+/* Runtime maximum TX power in SDK quarter-dBm units (8..84); SDK may quantize.
+ * Not persisted and not changed by init. Query after setting for actual value. */
+esp_err_t tg_wifi_set_tx_power(uint8_t quarter_dbm);
+esp_err_t tg_wifi_get_tx_power(uint8_t *quarter_dbm);
 esp_err_t tg_wifi_deinit(void);
 typedef struct {char ssid[33];char password[64];uint8_t version;} tg_wifi_credentials_t;
 /* Explicit persistence; not called automatically. NVS is not encrypted by this API. */

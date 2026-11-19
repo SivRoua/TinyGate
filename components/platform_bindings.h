@@ -8,3 +8,4 @@
 #include "tg_zigbee.h"
 #include "tg_button.h"
 #include "tg_rgb.h"
+#include "tg_sdcard.h"

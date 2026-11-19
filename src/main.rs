@@ -10,6 +10,8 @@ mod console_parse;
 mod display;
 mod platform;
 mod rgb;
+#[allow(dead_code)]
+mod sdcard;
 mod zigbee;
 mod zigbee_check;
 

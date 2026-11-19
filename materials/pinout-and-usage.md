@@ -11,10 +11,10 @@ BAT 是 USB 旁独立焊盘，不是右侧排针第一脚。右侧十脚依次�
 | 4 | — | 3V3 | power | — | 外设 3.3V 输出 |
 | 5 | 16 | TX/IO16 | uart | — | UART TX |
 | 6 | 17 | RX/IO17 | uart | — | UART RX |
-| 7 | 0 | IO0/GP0 | safe | 有 | GPIO、ADC |
-| 8 | 1 | IO1/GP1 | safe | 有 | GPIO、ADC |
-| 9 | 2 | IO2/GP2 | safe | 有 | GPIO、ADC |
-| 10 | 3 | IO3/GP3 | safe | 有 | GPIO、ADC |
+| 7 | 0 | IO0/GP0 | safe | 有 | **TF CS** |
+| 8 | 1 | IO1/GP1 | safe | 有 | **TF SCK** |
+| 9 | 2 | IO2/GP2 | safe | 有 | **TF MOSI** |
+| 10 | 3 | IO3/GP3 | safe | 有 | **TF MISO** |
 | 11 | 4 | IO4/GP4 | strapping | 有 | GPIO、ADC |
 | 12 | 5 | IO5/GP5 | strapping | 有 | GPIO、ADC |
 | 13 | 6 | IO6/GP6 | strapping | 有 | GPIO、ADC |
@@ -36,4 +36,5 @@ BAT 是 USB 旁独立焊盘，不是右侧排针第一脚。右侧十脚依次�
 GPIO6/7 的原表 strapping 分类与图中 JTAG 标记应结合芯片手册核实，代码不占用它们。
 GPIO8/9 等启动配置脚不能在启动时由外部电路强制到不合适电平。
 RGB 数据脚并不能证明具体灯珠型号；当前驱动按单颗 WS2812 兼容器件编写。
-BAT/板载充电器的存在不等于已经实现 UPS 或电池电压采样；SD 和 UPS 暂时搁置。
+TF 卡已分配 SPI2 和 GPIO0–3，接线与接口见 [TF 卡驱动](../docs/tf-card-driver.md)。
+UPS 和电池电压采样暂缓。

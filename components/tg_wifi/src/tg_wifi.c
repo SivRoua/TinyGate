@@ -227,6 +227,42 @@ esp_err_t tg_wifi_get_status(tg_wifi_status_t *status)
     return ESP_OK;
 }
 
+esp_err_t tg_wifi_set_power_save(uint8_t mode)
+{
+    if (mode > 2) return ESP_ERR_INVALID_ARG;
+    if (!s_driver || !s_started) return ESP_ERR_INVALID_STATE;
+    wifi_ps_type_t policy = mode == 0 ? WIFI_PS_NONE :
+                            mode == 1 ? WIFI_PS_MIN_MODEM : WIFI_PS_MAX_MODEM;
+    return record_error(esp_wifi_set_ps(policy));
+}
+
+esp_err_t tg_wifi_get_power_save(uint8_t *mode)
+{
+    if (!mode) return ESP_ERR_INVALID_ARG;
+    if (!s_driver || !s_started) return ESP_ERR_INVALID_STATE;
+    wifi_ps_type_t policy;
+    esp_err_t err = esp_wifi_get_ps(&policy);
+    if (err == ESP_OK) *mode = (uint8_t)policy;
+    return err;
+}
+
+esp_err_t tg_wifi_set_tx_power(uint8_t quarter_dbm)
+{
+    if (quarter_dbm < 8 || quarter_dbm > 84) return ESP_ERR_INVALID_ARG;
+    if (!s_driver || !s_started) return ESP_ERR_INVALID_STATE;
+    return record_error(esp_wifi_set_max_tx_power((int8_t)quarter_dbm));
+}
+
+esp_err_t tg_wifi_get_tx_power(uint8_t *quarter_dbm)
+{
+    if (!quarter_dbm) return ESP_ERR_INVALID_ARG;
+    if (!s_driver || !s_started) return ESP_ERR_INVALID_STATE;
+    int8_t value = 0;
+    esp_err_t err = esp_wifi_get_max_tx_power(&value);
+    if (err == ESP_OK) *quarter_dbm = (uint8_t)value;
+    return err;
+}
+
 esp_err_t tg_wifi_deinit(void)
 {
     if (!s_driver && !s_netif) return ESP_ERR_INVALID_STATE;
