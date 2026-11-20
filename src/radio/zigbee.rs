@@ -2,11 +2,12 @@
 use anyhow::{bail, Result};
 use esp_idf_svc::sys;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::{marker::PhantomData, rc::Rc};
 static OWNED: AtomicBool = AtomicBool::new(false);
-pub struct Coordinator {
-    _thread: PhantomData<Rc<()>>,
-}
+
+/// `Send` by design: one instance per boot (`OWNED`) and every call must
+/// originate from the single owning service task — the C component's
+/// serialization contract, enforced by the gateway task structure.
+pub struct Coordinator {}
 fn check(code: i32) -> Result<()> {
     if code != sys::ESP_OK {
         bail!("Zigbee ESP error 0x{code:X}");
@@ -25,9 +26,7 @@ impl Coordinator {
             OWNED.store(false, Ordering::Release);
             return Err(error);
         }
-        Ok(Self {
-            _thread: PhantomData,
-        })
+        Ok(Self {})
     }
     pub fn status(&self) -> Result<sys::tg_zigbee_status_t> {
         let mut status = unsafe { std::mem::zeroed() };

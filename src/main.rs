@@ -1,51 +1,55 @@
-//! Firmware entry point: assemble the board, then dispatch to the selected app.
+//! Firmware entry: assemble the gateway, then run the dual-executor loop.
 use anyhow::Result;
-use std::time::Duration;
-// use tiny_gate::apps::{self, demo}; // 测试模式下注释；恢复演示时解开
+use log::info;
+use tiny_gate::gateway::{self, bus, identity};
 use tiny_gate::hardware::Hardware;
-use tiny_gate::ui::Ui;
+use tiny_gate::ui::{self, Ui};
 
 fn main() -> Result<()> {
     esp_idf_svc::sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
 
-    // 恢复演示：删掉下面的循环，解开顶部 use 与 match 分发
-    // （分发会借用 &mut hw.button / &mut hw.rgb，届时把 hw 改回 let mut）。
+    // Board assembly: each probe degrades individually and never blocks.
     let hw = Hardware::probe();
-    // 屏幕唯一移交点：Display 由 UI 层探测并独占整个固件周期，
-    // 任何业务代码都拿不到驱动，只能经 Ui 更新画面。
-    let mut ui = Ui::new();
-    boot_page(&mut ui);
     hw.log_system()?;
+    let _ = hw; // lives for the whole firmware run; the loop below never exits
 
-    // BOOT 页面测试模式：开机页画完后停帧观察，不进入任何 app。
-    // main 不返回 → hw 与 ui 一直活着，画面自然保持（park 形态，无需 forget）。
-    // 恢复演示：删掉下面的循环，解开顶部 use 与 match 分发。
-    loop {
-        std::thread::sleep(Duration::from_secs(60));
-    }
+    // Connection identity per the contracts: persistent boot counter,
+    // boot-scoped boot_id, climbing seq.
+    let ident = identity::Identity::load();
+    info!(
+        "Identity: gateway_id={} boot_id={} boot_counter={}",
+        ident.gateway_id(),
+        ident.boot_id,
+        ident.boot_counter
+    );
+    let _ = ident; // consumed by the uplink milestone
 
-    // match apps::select() {
-    //     apps::App::CoexistBench => apps::coexist::run(&mut ui, &mut hw.button),
-    //     apps::App::ConnectivityBench => {
-    //         apps::connectivity::run(&mut hw.rgb, &mut hw.button)
-    //     }
-    //     apps::App::ZigbeeDemo => {
-    //         demo::zigbee_demo(&mut ui, &mut hw.button, &mut hw.rgb)
-    //     }
-    //     apps::App::RadioBench => demo::radio_bench(&mut ui, &mut hw),
-    // }
-}
+    // The screen runs on its own low-priority executor thread (DESIGN.md:
+    // never block radio timing); it receives everything over the bus.
+    // Executors are firmware-lifetime objects: leaked on purpose.
+    let screen = Ui::new();
+    std::thread::Builder::new()
+        .name("ui".into())
+        .stack_size(12 * 1024)
+        .spawn(move || {
+            let Some(screen) = screen else {
+                return; // no OLED probed: keep running degraded
+            };
+            let executor = Box::leak(Box::new(embassy_executor::Executor::new()));
+            executor.run(|spawner| {
+                let token = ui::task::ui_task(screen, bus::receiver())
+                    .expect("spawn UI task");
+                spawner.spawn(token);
+            });
+        })
+        .map_err(|err| anyhow::anyhow!("spawn UI thread: {err}"))?;
 
-/// Boot page on the OLED before the selected app takes over the board.
-///
-/// Draws the fixed status-page frame: top bar (radio icons + label) on
-/// row 0, project name on row 2. A missing display skips the page without
-/// blocking the firmware.
-fn boot_page(ui: &mut Option<Ui>) {
-    let Some(ui) = ui.as_mut() else {
-        return;
-    };
-    let _ = ui.update_and_fmt_top_bar(true, true, true, "12:34");
-    let _ = ui.update_status("TINYGATE", 1);
+    // Main executor: radio services, timers and later the uplink run here.
+    let executor = Box::leak(Box::new(embassy_executor::Executor::new()));
+    executor.run(|spawner| {
+        let token = gateway::zigbee::coordinator_service(bus::sender())
+            .expect("spawn Zigbee service");
+        spawner.spawn(token);
+    })
 }

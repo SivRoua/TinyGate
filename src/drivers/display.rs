@@ -2,14 +2,16 @@
 use anyhow::{bail, Result};
 use esp_idf_svc::sys;
 use std::ffi::CString;
-use std::marker::PhantomData;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 static OWNED: AtomicBool = AtomicBool::new(false);
+
+/// `Send` by design: exactly one instance exists (the `OWNED` guard) and all
+/// calls must stay on the owning UI task — the C driver serializes nothing
+/// itself. The task structure enforces the single-caller contract; the
+/// executor never migrates the task between threads.
 pub struct Display {
     active: bool,
-    _thread: PhantomData<Rc<()>>,
 }
 fn check(code: i32) -> Result<()> {
     if code != sys::ESP_OK {
@@ -50,10 +52,7 @@ impl Display {
             }
             return Err(err);
         }
-        Ok(Self {
-            active: true,
-            _thread: PhantomData,
-        })
+        Ok(Self { active: true })
     }
     fn ensure(&self) -> Result<()> {
         if !self.active {

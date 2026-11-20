@@ -27,12 +27,9 @@ codegen-units = 1
 log = "0.4"
 esp-idf-svc = { version = "0.53", default-features = false, features = ["std", "binstart"] }
 anyhow = "1.0"
-
-[features]
-default = ["zigbee-demo"]
-zigbee-demo = []
-connectivity-demo = []
-coexist-test = []
+embassy-executor = { version = "0.10.0", features = ["platform-std", "executor-thread"] }
+embassy-time = { version = "0.5.1", features = ["std"] }
+embassy-sync = "0.8.0"
 
 [build-dependencies]
 embuild = { version = "0.33", features = ["espidf"] }

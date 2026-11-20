@@ -15,6 +15,8 @@ pub mod console;
 /// Text columns of the OLED canvas: 21 glyph cells of 6 px.
 const WIDTH: usize = 21;
 
+pub mod task;
+
 pub struct Ui {
     console: console::Console,
     top_bar: Option<String>,

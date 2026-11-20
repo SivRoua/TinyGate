@@ -95,5 +95,17 @@
 - **理由**：顶栏（第 0 行）成为全局持久状态条（无线电图标 + 时间），只有 UI 层有权编排行布局；同时为后续"UI 任务 + 消息队列"的多任务演进预留唯一所有者。
 - 显示屏生命周期约定：屏幕所有者（当前为 `main` 持有的 `Ui`）park 在主循环中即可停帧观察；释放所有权 = 干净关机（熄屏 + 释放 I2C）。禁止用 `forget` 保帧。
 
+### 2026-11-21 M1 重构：网关产品主线取代演示分发
+
+- **分层确认（C 底座 / Rust 业务）**：C 组件拥有全部底层读写；Rust 只做上层业务。`drivers/`、`radio/`、`platform/` 仅是 `tg_*` C 函数的薄封装；`gateway/` 不直接触碰硬件 API（identity 的 NVS 属业务数据持久化，走 esp-idf-svc 服务封装，是唯一显式例外）。全部验证 bench 移入 `demo` 分支（基线 c3bdc22）。
+- **异步模型（embassy-on-esp-idf）**：`embassy-executor 0.10`（platform-std + executor-thread）+ `embassy-time 0.5`（官方 std driver，自起 tick 线程）+ `embassy-sync` 通道。纯 esp-hal/no_std 路线不可行——三射频共存绑定 ESP-IDF。双 executor：主 executor 跑无线电服务与定时器；UI 独立线程跑自己的 executor 并自降优先级，落实"低优先级人机界面任务"。
+- **物模型与总线**：`gateway/model.rs` 按 contracts v1 定形（属性名 snake_case、值 bool/number/string、顶栏/状态行渲染约定）；`gateway/bus.rs` 单一静态 embassy 通道（32 深与 C 队列对齐），服务 `try_send`、UI `try_receive`。
+- **连接身份**：`gateway/identity.rs` NVS 持久化 `boot_counter`、boot 级 `boot_id`、启动内递增 `seq`；`gateway_id` 占位 `tinygate-dev`，配网里程碑落地。
+- **Zigbee 服务**：demo 的入网/发现/配置上报/在场流程迁入 `gateway/zigbee.rs`（60 s 入网窗、HA profile 端点匹配、15 s 在场判定，`gateway/presence.rs` 纯逻辑可宿主测试）；命令执行与 TX-confirm 验证留待 M2 复用 `radio/zigbee_check`。
+- **Send 标记放宽**：`Display`/`Coordinator` 移除 `PhantomData<Rc<()>>` 的 !Send 断言——embassy 任务需跨 await 持有；单实例由 AtomicBool 守卫，串行契约由服务任务结构保证（executor 不迁移任务线程）。
+- **critical-section 实现**：esp-idf crates 不注册 `critical-section` 符号；`src/runtime.rs` 以 FreeRTOS `vPortEnterCritical/vPortExitCritical` 提供全固件唯一实现，供 embassy-sync 总线使用。
+- **构建修复前置**：`build.rs` 现转发 ESP-IDF configure 环境给 ninja，regen 失败降级为 warning（此前任何依赖变更都会 panic 并死锁构建）。
+- **待上板验证**：std tick 线程与双 executor 定时器唤醒；ZB 图标随协调器 ready 点亮；入网窗内传感器上报 → 顶栏时钟秒级走动 + "PEER/TEMP" 状态行；复位后 `boot_counter` 递增（NVS 生效）。
+
 
 
