@@ -38,6 +38,18 @@ esp_err_t tg_display_flush(void)
     return ESP_OK;
 }
 
+esp_err_t tg_display_flush_page(uint8_t page)
+{
+    if (!s_ready) return ESP_ERR_INVALID_STATE;
+    if (page >= TG_DISPLAY_ROWS) return ESP_ERR_INVALID_ARG;
+    const uint8_t position[] = {(uint8_t)(0xb0 + page), 0x00, 0x10};
+    esp_err_t err = commands(position, sizeof(position));
+    if (err != ESP_OK) return err;
+    uint8_t packet[129] = {0x40}; /* D/C#=1: page data */
+    memcpy(packet + 1, s_frame + page * 128, 128);
+    return i2c_master_transmit(s_device, packet, sizeof(packet), 100);
+}
+
 esp_err_t tg_display_init(void)
 {
     const tg_display_config_t config = {

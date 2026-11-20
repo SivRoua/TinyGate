@@ -1,0 +1,8 @@
+[package]
+name = "icon-editor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.28"
+# eframe 版本由 cargo add 填入

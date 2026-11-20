@@ -1,10 +1,7 @@
 //! Finite, explicit Wi-Fi/Zigbee bench. BLE remains unstarted (no S3 fixture yet).
-use crate::{
-    coexist_stats::{Latency, Sequence},
-    platform::Wifi,
-    zigbee::Coordinator,
-    zigbee_check::Pending,
-};
+use crate::apps::coexist_stats::{Latency, Sequence};
+use crate::platform::Wifi;
+use crate::radio::{zigbee::Coordinator, zigbee_check::Pending};
 use anyhow::{bail, Result};
 use esp_idf_svc::sys;
 use log::{info, warn};
@@ -55,11 +52,11 @@ fn snapshot(
         u.buckets,u.max_ms,z.buckets,z.max_ms);
 }
 pub fn run(
-    display: &mut Option<crate::display::Display>,
-    button: &mut Option<crate::button::Button>,
+    ui: &mut Option<crate::ui::Ui>,
+    button: &mut Option<crate::drivers::button::Button>,
 ) -> Result<()> {
     let mut zb = Coordinator::new()?;
-    let input = crate::connectivity::input()?;
+    let input = crate::apps::connectivity::input()?;
     let mut wifi: Option<Wifi> = None;
     let mut traffic: Option<Traffic> = None;
     let mut sequence = Sequence::default();
@@ -80,7 +77,7 @@ pub fn run(
     let mut control_secs = 10u64;
     let mut next_control = Instant::now();
     let mut opened = false;
-    let mut ui = false;
+    let mut ui_enabled = false;
     let mut next_stats = Instant::now();
     let boot = Instant::now();
     info!("COEX ready: help; BLE disabled; no Wi-Fi until explicitly requested");
@@ -97,7 +94,7 @@ pub fn run(
         if let Ok(line) = input.try_recv() {
             let outcome = (|| -> Result<()> {
                 if let Some(text) = line.strip_prefix("wifi connect ") {
-                    let (s, p) = crate::console_parse::credentials(text)?;
+                    let (s, p) = crate::apps::console_parse::credentials(text)?;
                     if wifi.is_none() {
                         wifi = Some(Wifi::new()?);
                     }
@@ -118,7 +115,7 @@ pub fn run(
                     ["stop"]=>{active=false;},
                     ["status"]=>{next_stats=Instant::now();},
                     ["control",seconds]=>{let n:u64=seconds.parse()?;if n>3600{bail!("Control interval <=3600");}control_secs=n;next_control=Instant::now()+Duration::from_secs(n.max(1));},
-                    ["ui","on"]=>ui=true,["ui","off"]=>ui=false,
+                    ["ui","on"]=>ui_enabled=true,["ui","off"]=>ui_enabled=false,
                     ["wifi","scan"]=>{if wifi.is_none(){wifi=Some(Wifi::new()?);}wifi.as_mut().unwrap().scan()?;},
                     ["wifi","disconnect"]=>{if let Some(w)=&mut wifi{w.disconnect()?;}},
                     ["wifi","off"]=>{if let Some(w)=&mut wifi{w.shutdown()?;}wifi=None;if let Some(t)=&traffic{counters.unfinished+=t.pending.len()as u64;}traffic=None;},
@@ -293,9 +290,9 @@ pub fn run(
                 system.free_heap_bytes,
                 wifi.as_ref().map(|w| w.status()).transpose()?,
             );
-            if ui {
-                crate::update_oled(
-                    display,
+            if ui_enabled {
+                crate::update_status_page(
+                    ui,
                     &format!("RUN {} {}", run_id, active),
                     &format!("RX {} GAP {}", sequence.unique, sequence.missing()),
                 );

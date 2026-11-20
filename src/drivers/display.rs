@@ -17,6 +17,24 @@ fn check(code: i32) -> Result<()> {
     }
     Ok(())
 }
+
+/// Display text encoding: U+E080..U+E0FF map onto the C canvas icon code
+/// space (single bytes 0x80..0xFF, paired halves form 11x7 icons); all other
+/// text passes through as UTF-8 and unknown code points render as '?'.
+/// Returns Err on interior NUL, mirroring `CString::new`.
+fn encode_display_text(text: &str) -> Result<CString> {
+    let mut bytes = Vec::with_capacity(text.len());
+    for ch in text.chars() {
+        let code = ch as u32;
+        if (0xE080..=0xE0FF).contains(&code) {
+            bytes.push((code - 0xE000) as u8);
+        } else {
+            let mut buf = [0u8; 4];
+            bytes.extend_from_slice(ch.encode_utf8(&mut buf).as_bytes());
+        }
+    }
+    Ok(CString::new(bytes)?)
+}
 impl Display {
     pub fn new() -> Result<Self> {
         if OWNED
@@ -51,9 +69,9 @@ impl Display {
     }
     pub fn show_status(&mut self, title: &str, line1: &str, line2: &str) -> Result<()> {
         self.ensure()?;
-        let title = CString::new(title)?;
-        let line1 = CString::new(line1)?;
-        let line2 = CString::new(line2)?;
+        let title = encode_display_text(title)?;
+        let line1 = encode_display_text(line1)?;
+        let line2 = encode_display_text(line2)?;
         check(unsafe {
             sys::tg_display_show_status(title.as_ptr(), line1.as_ptr(), line2.as_ptr())
         })
@@ -66,7 +84,7 @@ impl Display {
     #[allow(dead_code)]
     pub fn write_line(&mut self, row: u8, text: &str) -> Result<()> {
         self.ensure()?;
-        let text = CString::new(text)?;
+        let text = encode_display_text(text)?;
         check(unsafe { sys::tg_display_write_line(row, text.as_ptr()) })
     }
     #[allow(dead_code)]
@@ -78,6 +96,11 @@ impl Display {
     pub fn flush(&mut self) -> Result<()> {
         self.ensure()?;
         check(unsafe { sys::tg_display_flush() })
+    }
+    /// Refresh a single text row (rows map 1:1 to SSD1306 pages).
+    pub fn flush_page(&mut self, row: u8) -> Result<()> {
+        self.ensure()?;
+        check(unsafe { sys::tg_display_flush_page(row) })
     }
     #[allow(dead_code)]
     pub fn set_power(&mut self, on: bool) -> Result<()> {
@@ -97,6 +120,11 @@ impl Display {
         Ok(())
     }
 }
+/// Drop is the clean-shutdown path, not a bug to dodge: when the single
+/// long-lived owner goes away, the panel powers off and the I2C bus is
+/// released. Keep the `Display` in one owner for the whole firmware run
+/// (an app loop, or later a dedicated UI task). To freeze on a frame for
+/// visual inspection, park that owner in a `loop { sleep }` — never leak it.
 impl Drop for Display {
     fn drop(&mut self) {
         if self.active {
@@ -104,5 +132,35 @@ impl Drop for Display {
                 log::error!("{err:#}");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::encode_display_text;
+
+    #[test]
+    fn pua_icons_encode_as_single_high_bytes() {
+        let encoded = encode_display_text("\u{E080}\u{E08F} OK").unwrap();
+        assert_eq!(encoded.to_bytes(), [0x80, 0x8F, b' ', b'O', b'K']);
+    }
+
+    #[test]
+    fn plain_utf8_passes_through_unchanged() {
+        let text = "TinyGate 100%";
+        assert_eq!(
+            encode_display_text(text).unwrap().to_bytes(),
+            text.as_bytes()
+        );
+        // Non-icon private-use characters stay as their UTF-8 bytes.
+        assert_eq!(
+            encode_display_text("\u{E07F}").unwrap().to_bytes(),
+            "\u{E07F}".as_bytes()
+        );
+    }
+
+    #[test]
+    fn interior_nul_is_rejected_like_cstring() {
+        assert!(encode_display_text("a\0b").is_err());
     }
 }

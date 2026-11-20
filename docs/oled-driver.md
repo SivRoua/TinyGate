@@ -59,6 +59,7 @@ tests/display_canvas_test.c  无硬件渲染测试
 | `tg_display_write_line` | 覆盖一行 RAM，短文本会擦掉旧尾部，不自动刷屏 |
 | `tg_display_set_pixel` | 修改 RAM 中单个像素，不自动刷屏 |
 | `tg_display_flush` | 同步发送完整 1024 字节帧缓冲 |
+| `tg_display_flush_page` | 只刷新一个文本行（行号与 SSD1306 页 1:1），状态页局部更新用 |
 | `tg_display_show_status` | 清屏，在第 0、2、4 行写三段文字并刷新 |
 | `tg_display_set_power` | 亮屏/熄屏，保留 RAM 内容 |
 | `tg_display_set_contrast` | 对比度 0..255 |
@@ -96,9 +97,10 @@ OLED 初始化失败则记录错误并继续无线示例，不伪造显示成功
 ## 验证与运行
 
 ```powershell
-# 修改自定义 C 代码/头文件后，刷新 SDK 缓存和生成绑定
-cargo clean -p esp-idf-sys
+# 修改自定义 C 代码后：直接 cargo build（根 build.rs 已 watch components/ 并直驱 ninja 增量重编）
 cargo build
+# 修改头文件（platform_bindings.h 等，涉及 bindings 重新生成）时才需要刷新：
+cargo clean -p esp-idf-sys && cargo build
 # 主机测试（使用本机 MinGW GCC）
 gcc -std=c11 -Wall -Wextra -Werror -Icomponents/tg_display/src tests/display_canvas_test.c components/tg_display/src/display_canvas.c -o target/display-canvas-test.exe
 ./target/display-canvas-test.exe

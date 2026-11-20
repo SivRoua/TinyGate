@@ -40,7 +40,26 @@ int main(void)
     assert(memcmp(guarded.frame + 2*128, guarded.frame + 3*128, 128) == 0);
     assert(tg_canvas_line(guarded.frame, 4, "\xff"));
     assert(tg_canvas_line(guarded.frame, 5, "?"));
-    assert(memcmp(guarded.frame + 4*128, guarded.frame + 5*128, 128) == 0);
+    /* Icon code space changed the fallback: 0xFF renders blank, not '?'. */
+    for (unsigned i = 4*128; i < 5*128; ++i) assert(guarded.frame[i] == 0);
+    assert(guarded.frame[5*128] != 0);
+
+    /* Paired icon halves: two cells, middle gap column blank, halves exact. */
+    memset(guarded.frame, 0, sizeof(guarded.frame));
+    assert(tg_canvas_line(guarded.frame, 0, "\x80\x81"));
+    const uint8_t wifi_left[5]  = {0x04, 0x0A, 0x11, 0x01, 0x62};
+    const uint8_t wifi_right[5] = {0x62, 0x01, 0x11, 0x0A, 0x04};
+    assert(memcmp(guarded.frame, wifi_left, 5) == 0);
+    assert(guarded.frame[5] == 0); /* character gap column between the halves */
+    assert(memcmp(guarded.frame + 6, wifi_right, 5) == 0);
+    assert(guarded.frame[11] == 0); /* the cell after the icon stays blank */
+    /* Undefined icon code points (0x90..0xFF) render blank, not garbage. */
+    memset(guarded.frame, 0, sizeof(guarded.frame));
+    assert(tg_canvas_line(guarded.frame, 6, "\x90\xbf\xff"));
+    for (unsigned i = 6*128; i < 7*128; ++i) assert(guarded.frame[i] == 0);
+    for (unsigned i = 0; i < 16; ++i) {
+        assert(guarded.before[i] == 0xa5 && guarded.after[i] == 0xa5);
+    }
     for (unsigned i = 0; i < 16; ++i) {
         assert(guarded.before[i] == 0xa5 && guarded.after[i] == 0xa5);
     }

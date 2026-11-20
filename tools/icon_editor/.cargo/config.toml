@@ -1,0 +1,8 @@
+# Override the project-root ESP-IDF build config for this host-only tool:
+# build for the host and never build-std (inherited from the root config
+# otherwise, which would pull in the newlib/esp toolchain).
+[build]
+target = "x86_64-pc-windows-msvc"
+
+[unstable]
+build-std = []

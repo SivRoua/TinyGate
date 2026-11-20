@@ -32,7 +32,8 @@ impl Report {
             .join(":")
     }
     pub fn name(&self) -> Option<String> {
-        crate::ble_ad::local_name(&self.data).map(|b| String::from_utf8_lossy(b).into_owned())
+        crate::radio::ble_ad::local_name(&self.data)
+            .map(|b| String::from_utf8_lossy(b).into_owned())
     }
 }
 fn check(code: i32, operation: &str) -> Result<()> {

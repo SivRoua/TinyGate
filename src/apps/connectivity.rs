@@ -1,10 +1,8 @@
 //! Explicit serial command bench. Never auto-connects or persists secrets.
-use crate::{
-    ble::{Event, Scanner},
-    console_parse as parse,
-    platform::Wifi,
-    rgb::Rgb,
-};
+use crate::apps::console_parse as parse;
+use crate::drivers::rgb::Rgb;
+use crate::platform::Wifi;
+use crate::radio::ble::{Event, Scanner};
 use anyhow::{bail, Result};
 use log::{info, warn};
 use std::{
@@ -99,7 +97,10 @@ pub(crate) fn input() -> Result<mpsc::Receiver<String>> {
         })?;
     Ok(rx)
 }
-pub fn run(rgb: &mut Option<Rgb>, button: &mut Option<crate::button::Button>) -> Result<()> {
+pub fn run(
+    rgb: &mut Option<Rgb>,
+    button: &mut Option<crate::drivers::button::Button>,
+) -> Result<()> {
     let mut wifi = Wifi::new()?;
     let mut ble = Scanner::new()?;
     let deadline = Instant::now() + Duration::from_secs(10);
