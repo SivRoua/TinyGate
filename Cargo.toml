@@ -1,9 +1,8 @@
 [package]
 name = "tiny-gate"
 version = "0.1.0"
-authors = ["KanaDE <kanade@slsec.lab>"]
-edition = "2021"
-resolver = "2"
+edition = "2024"
+resolver = "3"
 
 [[bin]]
 name = "tiny-gate"

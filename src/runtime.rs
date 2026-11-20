@@ -10,14 +10,14 @@
 //! synchronization — the embassy-sync bus today — goes through this.
 
 // `restore-state-none` is feature-unified by esp-idf-hal, so the state is ().
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "Rust" fn _critical_section_1_0_acquire() -> () {
     unsafe {
         esp_idf_svc::sys::vPortEnterCritical();
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "Rust" fn _critical_section_1_0_release(_: ()) {
     unsafe {
         esp_idf_svc::sys::vPortExitCritical();
