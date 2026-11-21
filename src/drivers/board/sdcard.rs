@@ -1,45 +1,26 @@
 //! Owns the FAT mount while Rust uses std::fs through ESP-IDF VFS.
-use anyhow::{bail, Result};
+use crate::drivers::lease::{check, Lease};
+use anyhow::Result;
 use esp_idf_svc::sys;
-use std::{
-    marker::PhantomData,
-    path::Path,
-    rc::Rc,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use std::path::Path;
+use std::sync::atomic::AtomicBool;
 
 static OWNED: AtomicBool = AtomicBool::new(false);
 
 pub struct SdCard {
-    mounted: bool,
-    _task: PhantomData<Rc<()>>,
-}
-
-fn check(code: sys::esp_err_t, operation: &str) -> Result<()> {
-    if code != sys::ESP_OK {
-        bail!("TF card {operation}: ESP error 0x{code:X}");
-    }
-    Ok(())
+    lease: Lease,
 }
 
 impl SdCard {
     pub fn mount() -> Result<Self> {
-        if OWNED
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .is_err()
-        {
-            bail!("TF card driver already has an owner");
-        }
-        if let Err(err) = check(unsafe { sys::tg_sdcard_init() }, "mount") {
+        let mut lease = Lease::acquire(&OWNED, "TF card driver")?;
+        if let Err(err) = check(unsafe { sys::tg_sdcard_init() }, "TF card mount") {
             if unsafe { sys::tg_sdcard_deinit() } == sys::ESP_OK {
-                OWNED.store(false, Ordering::Release);
+                lease.release();
             }
             return Err(err);
         }
-        Ok(Self {
-            mounted: true,
-            _task: PhantomData,
-        })
+        Ok(Self { lease })
     }
 
     pub fn info(&self) -> Result<sys::tg_sdcard_info_t> {
@@ -48,7 +29,7 @@ impl SdCard {
             sector_size_bytes: 0,
             clock_khz: 0,
         };
-        check(unsafe { sys::tg_sdcard_get_info(&mut info) }, "info")?;
+        check(unsafe { sys::tg_sdcard_get_info(&mut info) }, "TF card info")?;
         Ok(info)
     }
 
@@ -60,10 +41,9 @@ impl SdCard {
 
     /// All files opened below path() must be closed first.
     pub fn unmount(&mut self) -> Result<()> {
-        if self.mounted {
-            check(unsafe { sys::tg_sdcard_deinit() }, "unmount")?;
-            self.mounted = false;
-            OWNED.store(false, Ordering::Release);
+        if self.lease.is_active() {
+            check(unsafe { sys::tg_sdcard_deinit() }, "TF card unmount")?;
+            self.lease.release();
         }
         Ok(())
     }

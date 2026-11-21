@@ -12,7 +12,7 @@ pub struct Temperature {
 }
 impl Temperature {
     pub fn new() -> Result<Self> {
-        let mut lease = Lease::acquire(&TEMPERATURE_OWNED)?;
+        let mut lease = Lease::acquire(&TEMPERATURE_OWNED, "Temperature")?;
         if let Err(err) = check(
             unsafe { sys::tg_temperature_init(-10, 80) },
             "temperature init",
@@ -27,7 +27,7 @@ impl Temperature {
         Ok(Self { lease })
     }
     pub fn read(&self) -> Result<f32> {
-        self.lease.ensure()?;
+        self.lease.ensure("Temperature")?;
         let mut value = 0.0;
         check(
             unsafe { sys::tg_temperature_read(&mut value) },
@@ -36,7 +36,7 @@ impl Temperature {
         Ok(value)
     }
     pub fn shutdown(&mut self) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Temperature")?;
         check(
             unsafe { sys::tg_temperature_deinit() },
             "temperature deinit",
@@ -47,7 +47,7 @@ impl Temperature {
 }
 impl Drop for Temperature {
     fn drop(&mut self) {
-        if self.lease.active {
+        if self.lease.is_active() {
             if let Err(err) = self.shutdown() {
                 log::error!("{err:#}");
             }

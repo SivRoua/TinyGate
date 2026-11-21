@@ -1,14 +1,13 @@
-//! Safe single-threaded owner of the C BLE scanner. Bindings come from tg_ble.h.
+//! Safe single-owner facade over the C BLE stack. Bindings come from tg_ble.h.
+use crate::drivers::lease::{check, Lease};
 use anyhow::{bail, Result};
 use esp_idf_svc::sys;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::{marker::PhantomData, rc::Rc};
+use std::sync::atomic::AtomicBool;
 
 static OWNED: AtomicBool = AtomicBool::new(false);
 
 pub struct Scanner {
-    active: bool,
-    _single_thread: PhantomData<Rc<()>>,
+    lease: Lease,
 }
 pub enum Event {
     Report(Report),
@@ -35,12 +34,6 @@ impl Report {
         crate::drivers::radio::ble_ad::local_name(&self.data)
             .map(|b| String::from_utf8_lossy(b).into_owned())
     }
-}
-fn check(code: i32, operation: &str) -> Result<()> {
-    if code != sys::ESP_OK {
-        bail!("{operation}: ESP error 0x{code:X}");
-    }
-    Ok(())
 }
 #[allow(dead_code)]
 impl Scanner {
@@ -118,20 +111,12 @@ impl Scanner {
         Ok(Some(event))
     }
     pub fn new() -> Result<Self> {
-        if OWNED
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .is_err()
-        {
-            bail!("BLE scanner already owned");
-        }
+        let mut lease = Lease::acquire(&OWNED, "BLE scanner")?;
         if let Err(err) = check(unsafe { sys::tg_ble_init() }, "BLE init") {
-            OWNED.store(false, Ordering::Release);
+            lease.release();
             return Err(err);
         }
-        Ok(Self {
-            active: true,
-            _single_thread: PhantomData,
-        })
+        Ok(Self { lease })
     }
     pub fn status(&self) -> Result<sys::tg_ble_status_t> {
         self.ensure_active()?;
@@ -185,20 +170,16 @@ impl Scanner {
     pub fn shutdown(&mut self) -> Result<()> {
         self.ensure_active()?;
         check(unsafe { sys::tg_ble_deinit() }, "BLE deinit")?;
-        self.active = false;
-        OWNED.store(false, Ordering::Release);
+        self.lease.release();
         Ok(())
     }
     fn ensure_active(&self) -> Result<()> {
-        if !self.active {
-            bail!("BLE scanner has been shut down");
-        }
-        Ok(())
+        self.lease.ensure("BLE scanner")
     }
 }
 impl Drop for Scanner {
     fn drop(&mut self) {
-        if self.active {
+        if self.lease.is_active() {
             if let Err(err) = self.shutdown() {
                 log::error!("{err:#}");
             }

@@ -21,14 +21,14 @@ pub enum WifiPowerSave {
 #[allow(dead_code)]
 impl Wifi {
     pub fn set_tx_power(&mut self, quarter_dbm: u8) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         check(
             unsafe { sys::tg_wifi_set_tx_power(quarter_dbm) },
             "set Wi-Fi TX power",
         )
     }
     pub fn tx_power(&self) -> Result<u8> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         let mut power = 0;
         check(
             unsafe { sys::tg_wifi_get_tx_power(&mut power) },
@@ -37,14 +37,14 @@ impl Wifi {
         Ok(power)
     }
     pub fn set_power_save(&mut self, mode: WifiPowerSave) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         check(
             unsafe { sys::tg_wifi_set_power_save(mode as u8) },
             "set Wi-Fi power save",
         )
     }
     pub fn power_save(&self) -> Result<WifiPowerSave> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         let mut mode = 0;
         check(
             unsafe { sys::tg_wifi_get_power_save(&mut mode) },
@@ -58,7 +58,7 @@ impl Wifi {
         }
     }
     pub fn save_credentials(&self, ssid: &str, password: &str) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         let ssid = CString::new(ssid)?;
         let password = CString::new(password)?;
         check(
@@ -67,7 +67,7 @@ impl Wifi {
         )
     }
     pub fn load_credentials(&self) -> Result<(String, String)> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         let mut value: sys::tg_wifi_credentials_t = unsafe { std::mem::zeroed() };
         check(
             unsafe { sys::tg_wifi_load_credentials(&mut value) },
@@ -84,14 +84,14 @@ impl Wifi {
         Ok((text(&value.ssid)?, text(&value.password)?))
     }
     pub fn forget_credentials(&self) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         check(
             unsafe { sys::tg_wifi_forget_credentials() },
             "forget Wi-Fi credentials",
         )
     }
     pub fn start_ap(&mut self, ssid: &str, password: &str, channel: u8) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         let ssid = CString::new(ssid)?;
         let password = CString::new(password)?;
         check(
@@ -100,7 +100,7 @@ impl Wifi {
         )
     }
     pub fn stop_ap(&mut self) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         check(unsafe { sys::tg_wifi_ap_stop() }, "Wi-Fi AP stop")
     }
     /// Explicit bounded policy, invoked by the core, never automatically at boot.
@@ -139,7 +139,7 @@ impl Wifi {
         bail!("Wi-Fi connection/DHCP failed after {attempts} attempts")
     }
     pub fn new() -> Result<Self> {
-        let mut lease = Lease::acquire(&WIFI_OWNED)?;
+        let mut lease = Lease::acquire(&WIFI_OWNED, "Wi-Fi")?;
         if let Err(err) = check(unsafe { sys::tg_wifi_init() }, "Wi-Fi init") {
             let cleanup = unsafe { sys::tg_wifi_deinit() };
             if cleanup == sys::ESP_OK || cleanup == sys::ESP_ERR_INVALID_STATE {
@@ -150,11 +150,11 @@ impl Wifi {
         Ok(Self { lease })
     }
     pub fn scan(&mut self) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         check(unsafe { sys::tg_wifi_scan_start() }, "Wi-Fi scan start")
     }
     pub fn status(&self) -> Result<sys::tg_wifi_status_t> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         let mut status = unsafe { std::mem::zeroed() };
         check(
             unsafe { sys::tg_wifi_get_status(&mut status) },
@@ -163,7 +163,7 @@ impl Wifi {
         Ok(status)
     }
     pub fn ap(&self, index: u16) -> Result<sys::tg_wifi_ap_t> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         let mut ap = unsafe { std::mem::zeroed() };
         check(
             unsafe { sys::tg_wifi_scan_get_ap(index, &mut ap) },
@@ -173,7 +173,7 @@ impl Wifi {
     }
     #[allow(dead_code)]
     pub fn connect(&mut self, ssid: &str, password: &str) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         let ssid = CString::new(ssid)?;
         let password = CString::new(password)?;
         // C copies credentials synchronously before these strings are dropped.
@@ -184,11 +184,11 @@ impl Wifi {
     }
     #[allow(dead_code)]
     pub fn disconnect(&mut self) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         check(unsafe { sys::tg_wifi_disconnect() }, "Wi-Fi disconnect")
     }
     pub fn shutdown(&mut self) -> Result<()> {
-        self.lease.ensure()?;
+        self.lease.ensure("Wi-Fi")?;
         check(unsafe { sys::tg_wifi_deinit() }, "Wi-Fi deinit")?;
         self.lease.release();
         Ok(())
@@ -196,7 +196,7 @@ impl Wifi {
 }
 impl Drop for Wifi {
     fn drop(&mut self) {
-        if self.lease.active {
+        if self.lease.is_active() {
             if let Err(err) = self.shutdown() {
                 log::error!("{err:#}");
             }

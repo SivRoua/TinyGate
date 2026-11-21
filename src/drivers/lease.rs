@@ -1,49 +1,53 @@
-//! Shared ownership guard and C error mapping for driver facades.
+//! Single-owner guard and C error mapping shared by every driver facade.
 //!
-//! Every C component is single-owner: exactly one Rust wrapper may own it
-//! for a firmware run. `Lease` and `check` keep that contract in one place
-//! instead of one hand-written copy per driver.
+//! Each C component may have exactly one Rust owner for a firmware run. The
+//! atomic CAS in [`Lease::acquire`] enforces that; the owning-task structure
+//! enforces the components' single-caller serialization contract. Thread
+//! affinity is deliberately not encoded here: embassy services hold drivers
+//! across `await` (DESIGN.md, 2026-11-21), and one owner is the real boundary.
 use anyhow::{bail, Result};
 use esp_idf_svc::sys;
-use std::marker::PhantomData;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-pub(crate) fn check(code: i32, operation: &str) -> Result<()> {
+/// Map a C `esp_err_t` to a Rust error with a stable operation label.
+pub(crate) fn check(code: sys::esp_err_t, operation: &str) -> Result<()> {
     if code != sys::ESP_OK {
         bail!("{operation}: ESP error 0x{code:X}");
     }
     Ok(())
 }
 
-// A failed shutdown deliberately retains ownership to prevent a second owner
-// from initializing a partially released C subsystem.
+/// Ownership of one C component. A failed shutdown deliberately keeps the
+/// lease: without it, a second owner could initialize a partially released
+/// C subsystem.
 pub(crate) struct Lease {
     owned: &'static AtomicBool,
-    pub(crate) active: bool,
-    _thread: PhantomData<Rc<()>>,
+    active: bool,
 }
 
 impl Lease {
-    pub(crate) fn acquire(owned: &'static AtomicBool) -> Result<Self> {
+    pub(crate) fn acquire(owned: &'static AtomicBool, name: &str) -> Result<Self> {
         if owned
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
-            bail!("Driver already owned");
+            bail!("{name} already owned");
         }
         Ok(Self {
             owned,
             active: true,
-            _thread: PhantomData,
         })
     }
 
-    pub(crate) fn ensure(&self) -> Result<()> {
+    pub(crate) fn ensure(&self, name: &str) -> Result<()> {
         if !self.active {
-            bail!("Driver already shut down");
+            bail!("{name} already shut down");
         }
         Ok(())
+    }
+
+    pub(crate) fn is_active(&self) -> bool {
+        self.active
     }
 
     pub(crate) fn release(&mut self) {
