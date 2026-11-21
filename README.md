@@ -2,6 +2,7 @@
 A netgate based on ESP32-C6 supermini board
 
 - [架构设计](DESIGN.md)
+- [Rust 架构与目录约定](docs/architecture.md)
 - [核心板引脚与当前占用](materials/pinout-and-usage.md)
 - 硬件验证 bench 固件在 `demo` 分支；`main` 为网关产品主线（embassy 双 executor：无线电服务 + 低优先级 UI 任务）
 - [TF 卡驱动](docs/tf-card-driver.md)

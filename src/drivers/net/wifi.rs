@@ -4,7 +4,7 @@ use esp_idf_svc::sys;
 use std::ffi::CString;
 use std::sync::atomic::AtomicBool;
 
-use super::{check, Lease};
+use crate::drivers::lease::{check, Lease};
 
 static WIFI_OWNED: AtomicBool = AtomicBool::new(false);
 

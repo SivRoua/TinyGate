@@ -5,8 +5,8 @@
 //! unavailable on this board". The OLED is deliberately **not** a slot here:
 //! the UI layer probes and owns it (`crate::ui::Ui::new`), because the screen
 //! may only be updated through the UI — no business code holds the driver.
-use crate::drivers::{button, rgb};
-use crate::platform;
+use crate::drivers::board::{button, rgb};
+use crate::drivers::sys;
 use log::{info, warn};
 
 pub struct Hardware {
@@ -25,7 +25,7 @@ impl Hardware {
 
     /// Log chip, reset and heap state once at boot.
     pub fn log_system(&self) -> anyhow::Result<()> {
-        let system = platform::system_info()?;
+        let system = sys::system_info()?;
         info!(
             "Chip model={} revision={} cores={} reset={} heap={} min_heap={} largest={}",
             system.chip_model,

@@ -2,7 +2,7 @@
 use anyhow::Result;
 use esp_idf_svc::sys;
 
-use super::check;
+use crate::drivers::lease::check;
 
 pub fn system_info() -> Result<sys::tg_system_info_t> {
     let mut info = unsafe { std::mem::zeroed() };

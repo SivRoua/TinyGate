@@ -4,7 +4,7 @@
 //! task drains with `try_recv` on its own tick. Capacity 32 matches the C
 //! event queues; an overflow is dropped and counted by embassy, visible
 //! as `send` failures in service logs.
-use crate::gateway::model::GatewayEvent;
+use crate::gateway::device::GatewayEvent;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::{Channel, Receiver, Sender};
 

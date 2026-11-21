@@ -4,7 +4,7 @@
 //! firmware run — no other code can reach the `Display`. Business modules
 //! update the screen through `Ui` methods (or the `update_status_page`
 //! helper that hides the probe-degraded `Option`), never through the driver.
-use crate::drivers::display::Display;
+use crate::drivers::board::display::Display;
 use crate::println_at;
 use crate::ui::console::{Console, Icon};
 use anyhow::Result;

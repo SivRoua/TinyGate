@@ -101,7 +101,7 @@ idf.py -p COM_NODE flash monitor
 ## 验收记录
 
 ```powershell
-rustc --test src/zigbee_check.rs -o target/zigbee-check-tests.exe
+rustc --test src/drivers/radio/zigbee_check.rs -o target/zigbee-check-tests.exe
 ./target/zigbee-check-tests.exe
 ```
 

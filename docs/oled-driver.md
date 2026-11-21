@@ -39,8 +39,8 @@ components/tg_display/
   include/tg_display.h       你提供给 Rust 的 C 接口
   src/tg_display.c           I2C 总线、地址探测、SSD1306 初始化、刷屏与资源释放
   src/display_canvas.c       可独立测试的页面布局、像素和小字体渲染
-src/display.rs              Rust 安全封装和独占生命周期
-src/main.rs                 页面内容与刷新时机
+src/drivers/board/display.rs Rust 安全封装和独占生命周期
+src/ui/                     页面内容与刷新时机（唯一屏幕写者）
 tests/display_canvas_test.c  无硬件渲染测试
 ```
 

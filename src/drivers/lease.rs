@@ -1,12 +1,8 @@
-//! Rust wrappers for the board platform drivers.
-pub mod system;
-pub mod temperature;
-pub mod wifi;
-
-pub use system::system_info;
-pub use temperature::Temperature;
-pub use wifi::{Wifi, WifiPowerSave};
-
+//! Shared ownership guard and C error mapping for driver facades.
+//!
+//! Every C component is single-owner: exactly one Rust wrapper may own it
+//! for a firmware run. `Lease` and `check` keep that contract in one place
+//! instead of one hand-written copy per driver.
 use anyhow::{bail, Result};
 use esp_idf_svc::sys;
 use std::marker::PhantomData;
@@ -27,6 +23,7 @@ pub(crate) struct Lease {
     pub(crate) active: bool,
     _thread: PhantomData<Rc<()>>,
 }
+
 impl Lease {
     pub(crate) fn acquire(owned: &'static AtomicBool) -> Result<Self> {
         if owned
@@ -41,12 +38,14 @@ impl Lease {
             _thread: PhantomData,
         })
     }
+
     pub(crate) fn ensure(&self) -> Result<()> {
         if !self.active {
             bail!("Driver already shut down");
         }
         Ok(())
     }
+
     pub(crate) fn release(&mut self) {
         self.active = false;
         self.owned.store(false, Ordering::Release);

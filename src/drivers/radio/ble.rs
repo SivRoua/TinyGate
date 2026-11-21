@@ -32,7 +32,7 @@ impl Report {
             .join(":")
     }
     pub fn name(&self) -> Option<String> {
-        crate::radio::ble_ad::local_name(&self.data)
+        crate::drivers::radio::ble_ad::local_name(&self.data)
             .map(|b| String::from_utf8_lossy(b).into_owned())
     }
 }

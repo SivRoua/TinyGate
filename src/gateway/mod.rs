@@ -10,8 +10,8 @@
 //! Each service owns one C driver (single-task serialization contract),
 //! runs as an `embassy_executor` task, and publishes typed observations on
 //! the shared [`bus`]. The UI task is the only screen writer.
+pub mod access;
 pub mod bus;
+pub mod device;
 pub mod identity;
-pub mod model;
 pub mod presence;
-pub mod zigbee;

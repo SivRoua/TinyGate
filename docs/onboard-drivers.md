@@ -23,11 +23,15 @@ components/
   tg_system/{include,src}/          C：芯片、复位原因、内存、运行时间
   c_drivers/                       保留的旧外设占位实现，本例不初始化
 src/
-  ble.rs                           Rust：BLE 所有权与安全封装
-  ble_ad.rs                        Rust：广播名称解析
-  platform.rs                      Rust：Wi-Fi、温度、系统信息封装
-  main.rs                          Rust：运行演示与业务日志
+  drivers/radio/ble.rs             Rust：BLE 所有权与安全封装
+  drivers/radio/ble_ad.rs          Rust：广播名称解析
+  drivers/net/wifi.rs              Rust：Wi-Fi 封装
+  drivers/sys/{temperature,system}.rs Rust：温度与系统信息
+  app/board.rs                     Rust：板级装配与启动日志
+  main.rs                          Rust：运行时入口
 ```
+
+> 2026-11-21：Rust 目录已按产品能力重组，当前结构见 [架构文档](architecture.md)。
 
 你的主要交付是各组件的 C 头文件、实现与 CMakeLists.txt。
 Rust 成员消费这些接口，决定控制策略、重连、错误提示和数据上报。
@@ -79,7 +83,7 @@ Wi-Fi 状态是最新快照，中间事件可合并，不能作为逐条可靠�
 Rust 核心接入示例（在获取真实配置后调用，不要把实际密码提交到仓库）：
 
 ```rust,ignore
-let mut wifi = platform::Wifi::new()?;
+let mut wifi = drivers::net::Wifi::new()?;
 wifi.connect(ssid_from_config, password_from_config)?;
 let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
 loop {
@@ -121,7 +125,7 @@ esp_reset_reason_t、微秒时钟转换的毫秒运行时间及内存统计。
 cargo clean -p esp-idf-sys
 cargo build
 cargo fmt --check
-rustc --test src/ble_ad.rs -o target/ble-ad-tests.exe
+rustc --test src/drivers/radio/ble_ad.rs -o target/ble-ad-tests.exe
 ./target/ble-ad-tests.exe
 # 接板并确认串口后烧录：
 cargo run

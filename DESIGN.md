@@ -76,7 +76,7 @@
 - **C 驱动组件下沉 (`components/c_drivers`)**:
   - 独立 ESP-IDF 标准组件结构，包含 `CMakeLists.txt`、`include/c_drivers.h` 与 `src/c_drivers.c`。
   - 模块化暴露硬件接口：UPS 电源与电池 ADC/中断采样、OLED SSD1306 显示流、MicroSD 存储挂载、Zigbee 3.0 协调器与 BLE 接入能力。
-  - 在 `Cargo.toml` 中配置 `package.metadata.esp-idf-sys.extra_components` 联动 ESP-IDF 构建体系，由 Rust `src/c_drivers.rs` 统一提供类型安全封装。
+  - 在 `Cargo.toml` 中配置 `package.metadata.esp-idf-sys.extra_components` 联动 ESP-IDF 构建体系，由 Rust `src/drivers/board/ups.rs` 统一提供类型安全封装。
 
 ### 2026-11-13 网关、云端与客户端通信契约
 
@@ -103,9 +103,17 @@
 - **连接身份**：`gateway/identity.rs` NVS 持久化 `boot_counter`、boot 级 `boot_id`、启动内递增 `seq`；`gateway_id` 占位 `tinygate-dev`，配网里程碑落地。
 - **Zigbee 服务**：demo 的入网/发现/配置上报/在场流程迁入 `gateway/zigbee.rs`（60 s 入网窗、HA profile 端点匹配、15 s 在场判定，`gateway/presence.rs` 纯逻辑可宿主测试）；命令执行与 TX-confirm 验证留待 M2 复用 `radio/zigbee_check`。
 - **Send 标记放宽**：`Display`/`Coordinator` 移除 `PhantomData<Rc<()>>` 的 !Send 断言——embassy 任务需跨 await 持有；单实例由 AtomicBool 守卫，串行契约由服务任务结构保证（executor 不迁移任务线程）。
-- **critical-section 实现**：esp-idf crates 不注册 `critical-section` 符号；`src/runtime.rs` 以 FreeRTOS `vPortEnterCritical/vPortExitCritical` 提供全固件唯一实现，供 embassy-sync 总线使用。
+- **critical-section 实现**：esp-idf crates 不注册 `critical-section` 符号；`src/app/runtime.rs` 以 FreeRTOS `vPortEnterCritical/vPortExitCritical` 提供全固件唯一实现，供 embassy-sync 总线使用。
 - **构建修复前置**：`build.rs` 现转发 ESP-IDF configure 环境给 ninja，regen 失败降级为 warning（此前任何依赖变更都会 panic 并死锁构建）。
 - **待上板验证**：std tick 线程与双 executor 定时器唤醒；ZB 图标随协调器 ready 点亮；入网窗内传感器上报 → 顶栏时钟秒级走动 + "PEER/TEMP" 状态行；复位后 `boot_counter` 递增（NVS 生效）。
+
+### 2026-11-21 Rust 代码按产品能力重组
+
+- **问题**：原 `src/` 仍按验证 bench 的形状划分——`drivers/`、`radio/`、`platform/` 三套平行的 C 外壳，加上根目录的 `hardware.rs`/`runtime.rs`；产品能力（接入、物模型、上云、规则）没有自己的落点。
+- **新顶层**：`app/`（组合根与板级装配）、`drivers/`（全部 `tg_*` 薄封装 + 统一 Lease）、`gateway/`（产品领域与能力服务）、`ui/`（唯一屏幕写者）。详见 [docs/architecture.md](docs/architecture.md)。
+- **依赖方向**：`main → app → gateway → drivers`；`ui → drivers`（仅 display）；`drivers` 不反向依赖业务。
+- **产品落点**：Zigbee 服务迁至 `gateway/access/zigbee.rs`；物模型迁至 `gateway/device.rs`；后续 M2 命令、M3 上云、M4 规则分别落在 `gateway/command.rs`、`gateway/uplink/`、`gateway/rules/`，不在 `src/` 预建空模块。
+- **历史路径**：旧 `src/c_drivers.rs` 现为 `src/drivers/board/ups.rs`；旧 `src/runtime.rs` 现为 `src/app/runtime.rs`。
 
 
 

@@ -4,7 +4,7 @@
 > [Wi-Fi / BLE / RGB 串口联调](connectivity-and-rgb.md)。下文描述扫描子功能。
 
 > 2026-11-14：BLE 已迁入独立 `components/tg_ble` 组件。
-> 当前主程序先运行 Wi-Fi 扫描，再运行本节 BLE 示例，最后打印系统心跳。
+> 2026-11-21：扫描示例已移至 `demo` 分支；`main` 是网关产品主线。
 > 完整目录与新接口见 [板上资源驱动说明](onboard-drivers.md)。
 
 本例实现 ESP32-C6 的传统 BLE 广播扫描，不需要外接排针、SD 或 OLED。
@@ -18,9 +18,9 @@
 | `components/tg_ble/src/tg_ble.c` | NimBLE 生命周期、GAP 扫描、回调与事件缓存 | 硬件/驱动成员 |
 | `components/tg_ble/CMakeLists.txt` | C 源文件、bt/nvs_flash 依赖 | 硬件/驱动成员 |
 | `sdkconfig.defaults` | 启用 NimBLE 与扫描角色 | 双方协作 |
-| `src/ble.rs` | 生成绑定的安全封装、资源所有权 | Rust 核心成员 |
-| `src/ble_ad.rs` | 广播名称解析 | Rust 核心成员 |
-| `src/main.rs` | 示例业务：等待就绪、扫描、打印、退出 BLE | Rust 核心成员 |
+| `src/drivers/radio/ble.rs` | 生成绑定的安全封装、资源所有权 | Rust 核心成员 |
+| `src/drivers/radio/ble_ad.rs` | 广播名称解析 | Rust 核心成员 |
+| `demo` 分支 | 示例业务：等待就绪、扫描、打印、退出 BLE | Rust 核心成员 |
 
 Cargo extra_components 使用 `components/platform_bindings.h` 汇总公开头文件，
 各 C 组件保持独立；Rust 不手写 BLE extern 声明。
@@ -109,7 +109,7 @@ BLE stopped and deinitialized. Reset board to scan again.
 无需硬件的名称解析测试：
 
 ```powershell
-rustc --test src/ble_ad.rs -o target/ble-ad-tests.exe
+rustc --test src/drivers/radio/ble_ad.rs -o target/ble-ad-tests.exe
 ./target/ble-ad-tests.exe
 ```
 

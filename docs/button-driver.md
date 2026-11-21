@@ -16,8 +16,8 @@ components/tg_button/
   include/tg_button.h    对 Rust 公开的 C ABI
   src/tg_button.c        GPIO、采样任务、事件缓存、生命周期
   src/button_state.c    无硬件依赖的消抖与长短按状态机
-src/button.rs           Rust 独占安全封装
-src/main.rs             消费并打印事件，不在 C 内绑定业务动作
+src/drivers/board/button.rs  Rust 独占安全封装
+src/app/board.rs        板级探测（按键入槽；事件消费待配网里程碑）
 tests/button_state_test.c
 ```
 

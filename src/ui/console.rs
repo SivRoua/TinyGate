@@ -9,7 +9,7 @@
 //! single page flushed only on the next newline (`println!`), or via
 //! `flush_line`. One row costs ~1..2 I2C transactions instead of the
 //! whole-frame 100ms flush.
-use crate::drivers::display::Display;
+use crate::drivers::board::display::Display;
 use anyhow::Result;
 use std::fmt;
 

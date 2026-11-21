@@ -6,10 +6,10 @@
 //! observation leaves as a typed [`GatewayEvent`] on the bus. Command
 //! execution (read/write with TX-confirm verification) is the next
 //! milestone; today the service only observes.
+use crate::drivers::radio::zigbee::Coordinator;
 use crate::gateway::bus::BusSender;
-use crate::gateway::model::{GatewayEvent, Property, Value};
+use crate::gateway::device::{GatewayEvent, Property, Value};
 use crate::gateway::presence::PresenceTracker;
-use crate::radio::zigbee::Coordinator;
 use embassy_time::{Duration, Instant, Timer};
 use esp_idf_svc::sys;
 use log::{info, warn};

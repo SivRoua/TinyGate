@@ -3,9 +3,9 @@
 //! DESIGN.md mandates a low-priority background task driving the OLED so
 //! I2C traffic never stalls the radio services. Everything it shows comes
 //! from the bus; it holds no other capability.
+use crate::drivers::sys;
 use crate::gateway::bus::BusReceiver;
-use crate::gateway::model::{GatewayEvent, Property};
-use crate::platform;
+use crate::gateway::device::{GatewayEvent, Property};
 use crate::ui::Ui;
 use embassy_time::{Duration, Ticker};
 use log::warn;
@@ -64,7 +64,7 @@ impl ViewState {
 /// No wall clock exists yet (SNTP is not wired): the top bar's time slot
 /// shows an honest uptime clock instead of a fake time.
 fn uptime_clock() -> String {
-    let uptime_ms = platform::system_info()
+    let uptime_ms = sys::system_info()
         .map(|info| info.uptime_ms)
         .unwrap_or(0);
     let total_seconds = uptime_ms / 1000;
