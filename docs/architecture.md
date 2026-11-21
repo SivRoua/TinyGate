@@ -25,7 +25,8 @@ src/
     net/                   Wi-Fi
     sys/                   芯片服务：system/temperature
   gateway/                 产品领域与能力服务
-    device.rs              物模型：Protocol/Property/Value/GatewayEvent
+    device.rs              物模型：Protocol/Property/Value
+    event.rs               网关事件：GatewayEvent（总线上流动的事实）
     bus.rs                 进程内事件总线（access → UI/上云/规则）
     identity.rs            gateway_id、boot_counter、boot_id、seq
     presence.rs            设备在线判定（纯逻辑，可宿主测试）

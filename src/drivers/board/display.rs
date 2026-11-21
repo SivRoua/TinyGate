@@ -39,20 +39,6 @@ impl Display {
         Ok(address)
     }
 
-    pub fn show_status(&mut self, title: &str, line1: &str, line2: &str) -> Result<()> {
-        self.ensure()?;
-        let title = encode_display_text(title)?;
-        let line1 = encode_display_text(line1)?;
-        let line2 = encode_display_text(line2)?;
-        check(
-            unsafe {
-                sys::tg_display_show_status(title.as_ptr(), line1.as_ptr(), line2.as_ptr())
-            },
-            "OLED show status",
-        )
-    }
-
-    #[allow(dead_code)]
     pub fn clear(&mut self) -> Result<()> {
         self.ensure()?;
         check(unsafe { sys::tg_display_clear() }, "OLED clear")
@@ -67,45 +53,12 @@ impl Display {
         )
     }
 
-    #[allow(dead_code)]
-    pub fn set_pixel(&mut self, x: u16, y: u16, on: bool) -> Result<()> {
-        self.ensure()?;
-        check(
-            unsafe { sys::tg_display_set_pixel(x, y, on) },
-            "OLED set pixel",
-        )
-    }
-
-    #[allow(dead_code)]
-    pub fn flush(&mut self) -> Result<()> {
-        self.ensure()?;
-        check(unsafe { sys::tg_display_flush() }, "OLED flush")
-    }
-
     /// Refresh a single text row (rows map 1:1 to SSD1306 pages).
     pub fn flush_page(&mut self, row: u8) -> Result<()> {
         self.ensure()?;
         check(
             unsafe { sys::tg_display_flush_page(row) },
             "OLED flush page",
-        )
-    }
-
-    #[allow(dead_code)]
-    pub fn set_power(&mut self, on: bool) -> Result<()> {
-        self.ensure()?;
-        check(
-            unsafe { sys::tg_display_set_power(on) },
-            "OLED set power",
-        )
-    }
-
-    #[allow(dead_code)]
-    pub fn set_contrast(&mut self, value: u8) -> Result<()> {
-        self.ensure()?;
-        check(
-            unsafe { sys::tg_display_set_contrast(value) },
-            "OLED set contrast",
         )
     }
 

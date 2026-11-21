@@ -112,7 +112,8 @@
 - **问题**：原 `src/` 仍按验证 bench 的形状划分——`drivers/`、`radio/`、`platform/` 三套平行的 C 外壳，加上根目录的 `hardware.rs`/`runtime.rs`；产品能力（接入、物模型、上云、规则）没有自己的落点。
 - **新顶层**：`app/`（组合根与板级装配）、`drivers/`（全部 `tg_*` 薄封装 + 统一 Lease）、`gateway/`（产品领域与能力服务）、`ui/`（唯一屏幕写者）。详见 [docs/architecture.md](docs/architecture.md)。
 - **依赖方向**：`main → app → gateway → drivers`；`ui → drivers`（仅 display）；`drivers` 不反向依赖业务。
-- **产品落点**：Zigbee 服务迁至 `gateway/access/zigbee.rs`；物模型迁至 `gateway/device.rs`；后续 M2 命令、M3 上云、M4 规则分别落在 `gateway/command.rs`、`gateway/uplink/`、`gateway/rules/`，不在 `src/` 预建空模块。
+- **产品落点**：Zigbee 服务迁至 `gateway/access/zigbee/`；物模型与事件拆为 `gateway/device.rs`、`gateway/event.rs`；后续 M2 命令、M3 上云、M4 规则分别落在 `gateway/command.rs`、`gateway/uplink/`、`gateway/rules/`，不在 `src/` 预建空模块。
+- **UI 拆层**：`console/` 状态机不再依赖 `Display`，由 `ui/mod.rs` 作为后端适配；`icon.rs`、`macros.rs`、`view.rs` 分离；`Value::display` 从物模型移到 `ui/view.rs`，领域层不再知道 5x7 字体。
 - **历史路径**：旧 `src/c_drivers.rs` 现为 `src/drivers/board/ups.rs`；旧 `src/runtime.rs` 现为 `src/app/runtime.rs`。
 
 

@@ -1,26 +1,46 @@
 //! The screen gateway: every OLED update goes through this module.
 //!
 //! `Ui::new` probes the display and takes sole ownership of it for the whole
-//! firmware run — no other code can reach the `Display`. Business modules
-//! update the screen through `Ui` methods (or the `update_status_page`
-//! helper that hides the probe-degraded `Option`), never through the driver.
+//! firmware run — no other code can reach the `Display`. The console state
+//! machine is backend-agnostic; this module is the only place that attaches
+//! the real OLED to it.
 use crate::drivers::board::display::Display;
-use crate::println_at;
-use crate::ui::console::{Console, Icon};
+use crate::ui::console::{Backend, Console};
+use crate::ui::icon::Icon;
 use anyhow::Result;
 use log::{info, warn};
 
 pub mod console;
+pub mod icon;
+mod macros;
+pub mod task;
+pub mod view;
 
 /// Text columns of the OLED canvas: 21 glyph cells of 6 px.
 const WIDTH: usize = 21;
 
-pub mod task;
+/// Link state for the persistent top bar.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Links {
+    pub wifi: bool,
+    pub ble: bool,
+    pub zigbee: bool,
+}
+
+impl Backend for Display {
+    fn write_line(&mut self, row: u8, text: &str) -> Result<()> {
+        Display::write_line(self, row, text)
+    }
+    fn flush_page(&mut self, row: u8) -> Result<()> {
+        Display::flush_page(self, row)
+    }
+    fn clear(&mut self) -> Result<()> {
+        Display::clear(self)
+    }
+}
 
 pub struct Ui {
-    console: console::Console,
-    top_bar: Option<String>,
-    status: Option<String>,
+    console: Console<Display>,
 }
 
 impl Ui {
@@ -37,9 +57,7 @@ impl Ui {
                     Err(err) => warn!("OLED address probe: {err:#}"),
                 }
                 Some(Ui {
-                    console: Console::new(screen),
-                    top_bar: None,
-                    status: None,
+                    console: Console::with_backend(screen),
                 })
             }
             Err(err) => {
@@ -49,35 +67,29 @@ impl Ui {
         }
     }
 
-    pub fn update_and_fmt_top_bar(&mut self,
-                              zigbee_status: bool,
-                              ble_status: bool,
-                              wifi_status: bool,
-                              time: &str,
-    ) -> Result<()> {
-        let zgbe_icn = if zigbee_status {Icon::ZB} else {Icon::WARN};
-        let ble_icn = if ble_status {Icon::BLE} else {Icon::WARN};
-        let wifi_icn = if wifi_status {Icon::WIFI} else {Icon::WARN};
-        // Three icon pairs occupy 6 of the 21 canvas columns; right-align the
-        // time inside the remaining field so it stays on-screen.
-        let time_field = WIDTH - 6;
-        self.top_bar = Some(format!(
-            "{wifi_icn}{ble_icn}{zgbe_icn}{:>time_field$}",
-            time,
-            time_field = time_field
-        ));
-        println_at!(self.console, 0, "{}", self.top_bar.as_ref().unwrap().as_str())
+    /// Draw the persistent top bar: three link icons plus a right-aligned
+    /// clock. Icons occupy 6 of the 21 canvas columns.
+    pub fn draw_top_bar(&mut self, links: Links, time: &str) -> Result<()> {
+        let wifi = if links.wifi { Icon::WIFI } else { Icon::WARN };
+        let ble = if links.ble { Icon::BLE } else { Icon::WARN };
+        let zb = if links.zigbee { Icon::ZB } else { Icon::WARN };
+        let width = WIDTH - 6;
+        crate::println_at!(self.console, 0, "{wifi}{ble}{zb}{time:>width$}")
     }
 
-    /// Overwrite one status row; `line` 1..3 map to canvas rows 2/4/6.
-    pub fn update_status(&mut self, msg: &str, line: u8) -> Result<()> {
-        self.status = Some(msg.to_owned());
-        println_at!(self.console, line * 2, "{}", self.status.as_ref().unwrap())
+    /// Overwrite one canvas row (0..8), leaving the top bar to its owner.
+    pub fn draw_row(&mut self, row: u8, text: &str) -> Result<()> {
+        crate::println_at!(self.console, row, "{text}")
     }
 
     /// The standard status pair: canvas rows 2 and 4 in one call.
-    pub fn update_status_pair(&mut self, line1: &str, line2: &str) -> Result<()> {
-        self.update_status(line1, 1)?;
-        self.update_status(line2, 2)
+    pub fn draw_status_pair(&mut self, line1: &str, line2: &str) -> Result<()> {
+        self.draw_row(2, line1)?;
+        self.draw_row(4, line2)
+    }
+
+    /// Blank the panel and reset the status-page cursor.
+    pub fn clear(&mut self) -> Result<()> {
+        self.console.clear()
     }
 }
