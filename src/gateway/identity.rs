@@ -52,7 +52,10 @@ impl Identity {
 fn bump_counter() -> anyhow::Result<u32> {
     let partition = EspDefaultNvsPartition::take()?;
     let nvs = EspNvs::new(partition, NAMESPACE, true)?;
-    let next = nvs.get_u32(BOOT_COUNTER_KEY)?.unwrap_or(0).saturating_add(1);
+    let next = nvs
+        .get_u32(BOOT_COUNTER_KEY)?
+        .unwrap_or(0)
+        .saturating_add(1);
     nvs.set_u32(BOOT_COUNTER_KEY, next)?;
     Ok(next)
 }

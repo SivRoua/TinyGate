@@ -43,8 +43,7 @@ pub fn run() -> Result<()> {
             };
             let executor = Box::leak(Box::new(embassy_executor::Executor::new()));
             executor.run(|spawner| {
-                let token = ui::task::ui_task(screen, bus::receiver())
-                    .expect("spawn UI task");
+                let token = ui::task::ui_task(screen, bus::receiver()).expect("spawn UI task");
                 spawner.spawn(token);
             });
         })

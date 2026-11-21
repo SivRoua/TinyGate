@@ -1,5 +1,5 @@
 //! GPIO9-to-GND button. Driver events carry no application actions.
-use crate::drivers::lease::{check, Lease};
+use crate::drivers::lease::{Lease, check};
 use anyhow::Result;
 use esp_idf_svc::sys;
 use std::sync::atomic::AtomicBool;
@@ -54,7 +54,10 @@ impl Button {
     pub fn status(&self) -> Result<sys::tg_button_status_t> {
         self.lease.ensure("Button")?;
         let mut status = unsafe { std::mem::zeroed() };
-        check(unsafe { sys::tg_button_get_status(&mut status) }, "Button status")?;
+        check(
+            unsafe { sys::tg_button_get_status(&mut status) },
+            "Button status",
+        )?;
         Ok(status)
     }
 

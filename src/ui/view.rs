@@ -21,7 +21,9 @@ impl ViewState {
         match event {
             GatewayEvent::RadioZigbee { ready } => self.zigbee_ready = ready,
             GatewayEvent::PeerPresence { address, online } => self.peer = Some((address, online)),
-            GatewayEvent::Property { property, value, .. } => {
+            GatewayEvent::Property {
+                property, value, ..
+            } => {
                 // Short 5x7-font labels; "TEMP 25.50 C" / "PWR ON".
                 let (label, unit) = match property {
                     Property::Temperature => ("TEMP", " C"),
@@ -45,10 +47,7 @@ impl ViewState {
             None if self.zigbee_ready => "ZB READY NO DEV".to_string(),
             None => "ZB OFFLINE".to_string(),
         };
-        let line2 = self
-            .latest
-            .clone()
-            .unwrap_or_else(|| "NO DATA".to_string());
+        let line2 = self.latest.clone().unwrap_or_else(|| "NO DATA".to_string());
         if let Err(err) = ui.draw_status_pair(&line1, &line2) {
             log::warn!("OLED: {err:#}");
         }

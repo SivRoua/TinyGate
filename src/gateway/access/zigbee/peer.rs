@@ -39,7 +39,8 @@ impl Peer {
     /// Attribute value to typed observation, per the bring-up protocol units
     /// (temperature attribute carries 0.01 degC; OnOff carries 0/1).
     pub(super) fn observation(&self, event: &sys::tg_zigbee_event_t) -> Option<(Property, Value)> {
-        if self.temperature_endpoint == Some(event.endpoint) && event.cluster == CLUSTER_TEMPERATURE {
+        if self.temperature_endpoint == Some(event.endpoint) && event.cluster == CLUSTER_TEMPERATURE
+        {
             Some((
                 Property::Temperature,
                 Value::Number(event.value as f32 / 100.0),

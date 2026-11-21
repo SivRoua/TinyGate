@@ -5,7 +5,7 @@
 //! enforces the components' single-caller serialization contract. Thread
 //! affinity is deliberately not encoded here: embassy services hold drivers
 //! across `await` (DESIGN.md, 2026-11-21), and one owner is the real boundary.
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use esp_idf_svc::sys;
 use std::sync::atomic::{AtomicBool, Ordering};
 

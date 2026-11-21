@@ -1,10 +1,10 @@
 //! Wi-Fi station/AP control (wraps tg_wifi).
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use esp_idf_svc::sys;
 use std::ffi::CString;
 use std::sync::atomic::AtomicBool;
 
-use crate::drivers::lease::{check, Lease};
+use crate::drivers::lease::{Lease, check};
 
 static WIFI_OWNED: AtomicBool = AtomicBool::new(false);
 

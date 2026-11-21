@@ -1,5 +1,5 @@
 //! GPIO8 addressable RGB indicator.
-use crate::drivers::lease::{check, Lease};
+use crate::drivers::lease::{Lease, check};
 use anyhow::Result;
 use esp_idf_svc::sys;
 use std::sync::atomic::AtomicBool;
@@ -25,10 +25,7 @@ impl Rgb {
 
     pub fn set(&mut self, r: u8, g: u8, b: u8, brightness: u8) -> Result<()> {
         self.lease.ensure("RGB")?;
-        check(
-            unsafe { sys::tg_rgb_set(r, g, b, brightness) },
-            "RGB set",
-        )
+        check(unsafe { sys::tg_rgb_set(r, g, b, brightness) }, "RGB set")
     }
 
     pub fn shutdown(&mut self) -> Result<()> {

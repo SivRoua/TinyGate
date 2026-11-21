@@ -1,5 +1,5 @@
 //! Owns the FAT mount while Rust uses std::fs through ESP-IDF VFS.
-use crate::drivers::lease::{check, Lease};
+use crate::drivers::lease::{Lease, check};
 use anyhow::Result;
 use esp_idf_svc::sys;
 use std::path::Path;
@@ -29,7 +29,10 @@ impl SdCard {
             sector_size_bytes: 0,
             clock_khz: 0,
         };
-        check(unsafe { sys::tg_sdcard_get_info(&mut info) }, "TF card info")?;
+        check(
+            unsafe { sys::tg_sdcard_get_info(&mut info) },
+            "TF card info",
+        )?;
         Ok(info)
     }
 

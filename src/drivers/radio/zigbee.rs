@@ -1,5 +1,5 @@
 //! Coordinator lifetime is the firmware lifetime; no implicit reset or Drop teardown.
-use crate::drivers::lease::{check, Lease};
+use crate::drivers::lease::{Lease, check};
 use anyhow::Result;
 use esp_idf_svc::sys;
 use std::sync::atomic::AtomicBool;

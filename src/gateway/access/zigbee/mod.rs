@@ -87,7 +87,14 @@ pub async fn coordinator_service(bus: BusSender<'static>) {
                     break;
                 }
             };
-            handle(&mut zb, &mut peers, &mut presence, &mut request_id, event, &bus);
+            handle(
+                &mut zb,
+                &mut peers,
+                &mut presence,
+                &mut request_id,
+                event,
+                &bus,
+            );
         }
 
         for address in presence.sweep(Instant::now()) {

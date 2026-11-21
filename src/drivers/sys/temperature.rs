@@ -3,7 +3,7 @@ use anyhow::Result;
 use esp_idf_svc::sys;
 use std::sync::atomic::AtomicBool;
 
-use crate::drivers::lease::{check, Lease};
+use crate::drivers::lease::{Lease, check};
 
 static TEMPERATURE_OWNED: AtomicBool = AtomicBool::new(false);
 

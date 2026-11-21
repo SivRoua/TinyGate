@@ -1,5 +1,5 @@
 //! Single-owner OLED facade. C owns I2C and framebuffer; Rust owns presentation.
-use crate::drivers::lease::{check, Lease};
+use crate::drivers::lease::{Lease, check};
 use anyhow::Result;
 use esp_idf_svc::sys;
 use std::ffi::CString;
@@ -35,7 +35,10 @@ impl Display {
     pub fn address(&self) -> Result<u8> {
         self.ensure()?;
         let mut address = 0;
-        check(unsafe { sys::tg_display_get_address(&mut address) }, "OLED address")?;
+        check(
+            unsafe { sys::tg_display_get_address(&mut address) },
+            "OLED address",
+        )?;
         Ok(address)
     }
 

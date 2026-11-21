@@ -1,6 +1,6 @@
 //! Safe single-owner facade over the C BLE stack. Bindings come from tg_ble.h.
-use crate::drivers::lease::{check, Lease};
-use anyhow::{bail, Result};
+use crate::drivers::lease::{Lease, check};
+use anyhow::{Result, bail};
 use esp_idf_svc::sys;
 use std::sync::atomic::AtomicBool;
 
