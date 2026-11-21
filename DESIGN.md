@@ -21,7 +21,7 @@
 
 #### 2. 硬件系统设计
 - 核心主控: ESP32-C6 芯片，单芯片负责 Wi-Fi 6、BLE 5.3 以及 IEEE 802.15.4 (Zigbee 3.0) 射频时分共存。
-- 电源与 UPS: 18650 锂电池配合动态电源路径管理芯片，实现外接供电与电池无缝切换。配备主电源掉电中断检测 GPIO 与电池电压 ADC 采样。
+- 电源与 UPS: ~~18650 锂电池配合动态电源路径管理芯片，实现外接供电与电池无缝切换。配备主电源掉电中断检测 GPIO 与电池电压 ADC 采样。~~ [2026-11-21] 改为超级电容掉电保持，只负责快速保存窗口；见下方“电源改为超级电容保持”。
 - 本地存储: MicroSD 卡 (SPI 接口)，挂载 FATFS，用于持久化存储本地 rules.toml 规则文件、系统运行日志以及断网数据队列。
 - 人机交互: 
   - 0.96 寸 OLED 显示屏 (I2C 接口，SSD1306)，显示 IP 地址、网络状态、设备数量与联动事件流。
@@ -75,8 +75,8 @@
   - 链接与运行时：通过 `.cargo/config.toml` 配置 `ldproxy` 链接器与 `build-std = ["std", "panic_abort"]`。
 - **C 驱动组件下沉 (`components/c_drivers`)**:
   - 独立 ESP-IDF 标准组件结构，包含 `CMakeLists.txt`、`include/c_drivers.h` 与 `src/c_drivers.c`。
-  - 模块化暴露硬件接口：UPS 电源与电池 ADC/中断采样、OLED SSD1306 显示流、MicroSD 存储挂载、Zigbee 3.0 协调器与 BLE 接入能力。
-  - 在 `Cargo.toml` 中配置 `package.metadata.esp-idf-sys.extra_components` 联动 ESP-IDF 构建体系，由 Rust `src/drivers/board/ups.rs` 统一提供类型安全封装。
+  - 模块化暴露硬件接口：电源掉电检测与保持电压采样（2026-11-21 起为超级电容方案）、OLED SSD1306 显示流、MicroSD 存储挂载、Zigbee 3.0 协调器与 BLE 接入能力。
+  - 在 `Cargo.toml` 中配置 `package.metadata.esp-idf-sys.extra_components` 联动 ESP-IDF 构建体系，由 Rust `src/drivers/board/power.rs` 统一提供类型安全封装。
 
 ### 2026-11-13 网关、云端与客户端通信契约
 
@@ -114,7 +114,16 @@
 - **依赖方向**：`main → app → gateway → drivers`；`ui → drivers`（仅 display）；`drivers` 不反向依赖业务。
 - **产品落点**：Zigbee 服务迁至 `gateway/access/zigbee/`；物模型与事件拆为 `gateway/device.rs`、`gateway/event.rs`；后续 M2 命令、M3 上云、M4 规则分别落在 `gateway/command.rs`、`gateway/uplink/`、`gateway/rules/`，不在 `src/` 预建空模块。
 - **UI 拆层**：`console/` 状态机不再依赖 `Display`，由 `ui/mod.rs` 作为后端适配；`icon.rs`、`macros.rs`、`view.rs` 分离；`Value::display` 从物模型移到 `ui/view.rs`，领域层不再知道 5x7 字体。
-- **历史路径**：旧 `src/c_drivers.rs` 现为 `src/drivers/board/ups.rs`；旧 `src/runtime.rs` 现为 `src/app/runtime.rs`。
+- **历史路径**：旧 `src/c_drivers.rs` 现为 `src/drivers/board/power.rs`；旧 `src/runtime.rs` 现为 `src/app/runtime.rs`。
+
+### 2026-11-21 电源改为超级电容保持
+
+- **决定**：取消 18650 锂电池与电池管理。电源路径改为超级电容保持，只提供主电源丢失后的短时保存窗口，不追求续航或持续运行。
+- **产品行为**：检测到 mains loss → 立即停止射频/上云等非必要工作 → 在保持窗口内按优先级保存关键状态 → 停止业务并等待电源耗尽；恢复供电按冷启动处理，`boot_counter` 递增。
+- **保存内容**：命令去重与结果、离线事件队列、日志尾、必要的设备/规则状态。保存顺序与实现由存储/命令模块提供，电源驱动不决定业务写什么。
+- **不提供的接口**：电池电压、SoC、剩余续航、长时间 UPS 运行。`drivers/board/power.rs` 只暴露 `init`、`mains_lost`、`rail_voltage`；`rail_voltage` 仅用于估算保存窗口，不是电量。
+- **窗口标定**：超级电容容量、掉电检测 GPIO/ADC 引脚与保存预算待硬件确认并实测；未标定前不得在代码或 UI 承诺具体毫秒数，也不得把“已发起保存”报告为“已保证落盘”。
+- **落点**：`components/c_drivers` 占位函数改为 `tg_power_*`；Rust 门面为 `drivers/board/power.rs`；掉电编排在 `gateway/power.rs`，依赖 M3 的存储与命令日志。
 
 
 

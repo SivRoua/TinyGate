@@ -1,7 +1,7 @@
 # 无外设板上资源驱动（2026-11-14）
 
 > Wi-Fi 的显式凭据持久化、SoftAP，BLE GATT 和 GPIO8 RGB 已新增；
-> 请以 [通信与 RGB 联调说明](connectivity-and-rgb.md) 为当前接口依据。SD/UPS 继续搁置。
+> 请以 [通信与 RGB 联调说明](connectivity-and-rgb.md) 为当前接口依据。SD 继续搁置；电源已改为超级电容掉电保持（2026-11-21）。
 
 > 当前默认固件为双 C6 Zigbee 联调模式。运行本页的 Wi-Fi/BLE/OLED 演示请使用
 > `cargo run --no-default-features`；参见 [Zigbee 联调](zigbee-bringup.md)。
@@ -144,7 +144,7 @@ cargo run
 | BLE | 原扫描报告、名称、完成与丢弃统计仍可用 |
 
 尚未实现：LED、BOOT、Zigbee 接入、BLE GATT 控制、NVS 业务存储与 USB 命令终端。
-旧 c_drivers 的电池/SD 数据仍是占位值，主程序不调用它们。
+旧 c_drivers 的电源/SD 数据仍是占位值；电源函数已改为 `tg_power_*`，主程序暂不调用。
 
 参考官方接口：
 - https://docs.espressif.com/projects/esp-idf/en/stable/esp32c6/api-reference/network/esp_wifi.html

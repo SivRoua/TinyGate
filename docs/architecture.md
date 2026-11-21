@@ -20,7 +20,7 @@ src/
     runtime.rs             critical-section 的 FreeRTOS 实现
   drivers/                 C 适配层：tg_* 的薄封装与所有权守卫
     lease.rs               单所有者 Lease + C 错误码映射
-    board/                 板载外设：button/rgb/display/sdcard/ups
+    board/                 板载外设：button/rgb/display/sdcard/power
     radio/                 射频协议：ble/ble_ad/zigbee/zigbee_check
     net/                   Wi-Fi
     sys/                   芯片服务：system/temperature
@@ -74,6 +74,16 @@ access 服务 ──> GatewayEvent ──> bus ──┬─> ui 任务
 
 总线只传“值得对外表达的事实”；服务内部状态（端点表、请求 id、去重表）不穿过总线。
 
+## 掉电保存契约
+
+超级电容不是电池，不承担续航：
+
+- 驱动只回答两件事：主电源是否丢失、保持电压还剩多少（用于估算保存窗口）。
+- 掉电后的动作顺序是：停止射频/上云等非必要工作 → 按优先级落盘 → 停止业务并等待电源耗尽。
+- 恢复供电按冷启动处理，不恢复未完成的即时控制。
+- 保存内容由存储/命令模块决定，电源驱动不决定业务写什么。
+- 保持窗口未实测标定前，不得在 UI 或日志里承诺具体毫秒数，也不得把“已发起保存”说成“已保证落盘”。
+
 ## 产品里程碑与落点
 
 | 里程碑 | 能力 | 代码落点 |
@@ -83,6 +93,6 @@ access 服务 ──> GatewayEvent ──> bus ──┬─> ui 任务
 | M3 | Wi-Fi + MQTT 上云：events/status/commands/results、心跳、断网补传 | `gateway/uplink/`、`drivers/net/wifi.rs` |
 | M4 | SD 上的 `rules.toml` 本地 TCA、离线队列持久化 | `gateway/rules/`、`gateway/storage/`、`drivers/board/sdcard.rs` |
 | M5 | BLE 执行设备接入与 GATT 控制 | `gateway/access/ble.rs`、`drivers/radio/ble.rs` |
-| 贯穿 | UPS 电源监测、按键交互、配网 | `gateway/power.rs`、`ui/`、`drivers/board/ups.rs` |
+| 贯穿 | 掉电保持：mains-loss 检测 + 快速保存窗口、按键交互、配网 | `gateway/power.rs`、`ui/`、`drivers/board/power.rs` |
 
 未落地的能力只在文档中占位，不在 `src/` 里建空模块；实现时按上表落点新增目录。

@@ -9,17 +9,19 @@ extern "C" {
 #endif
 
 /**
- * @brief Legacy UPS placeholder; real drivers have independent lifecycles.
+ * @brief Legacy combined C driver placeholder; real drivers have independent lifecycles.
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t tg_c_drivers_init(void);
 
 // ==========================================
-// 1. UPS & Battery Management
+// 1. Power rail / supercapacitor hold-up
 // ==========================================
-esp_err_t tg_ups_init(void);
-float tg_ups_get_battery_voltage(void);
-bool tg_ups_is_mains_power_loss(void);
+// Mains-loss detection plus rail sampling. The supercap is not a battery:
+// it only provides a short save window, so there is no SoC or runtime API.
+esp_err_t tg_power_init(void);
+bool tg_power_mains_lost(void);
+float tg_power_rail_voltage(void);
 
 // ==========================================
 // 5. BLE Central / Observer

@@ -1,7 +1,7 @@
 # Wi-Fi / BLE Central / RGB 联调（2026-11-16）
 
 引脚来源与占用见 `materials/pinout-and-usage.md`。OLED SDA20/SCL19、按键 GPIO9，
-单颗 RGB 数据脚 GPIO8；GPIO15 普通 LED 本次不驱动。SD 和 UPS 暂缓，仍为占位代码。
+单颗 RGB 数据脚 GPIO8；GPIO15 普通 LED 本次不驱动。SD 和电源保持暂缓，仍为占位代码；电源方案为超级电容（2026-11-21）。
 
 ## 构建模式
 

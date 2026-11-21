@@ -46,7 +46,7 @@ tests/display_canvas_test.c  无硬件渲染测试
 
 旧 c_drivers 中仅打印日志的显示函数已经移除；同名真实接口由 tg_display 提供。
 旧 C 调用者需改为包含 `tg_display.h` 并声明组件依赖，Rust 使用新 `Display` 封装。
-不调用旧 init_all，避免显示驱动与 UPS/SD 占位实现绑定。
+不调用旧 init_all，避免显示驱动与电源/SD 占位实现绑定。
 
 ## C 接口
 

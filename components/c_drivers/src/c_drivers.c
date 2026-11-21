@@ -8,9 +8,9 @@ esp_err_t tg_c_drivers_init(void)
 {
     ESP_LOGI(TAG, "Initializing TinyGate C driver subsystem...");
 
-    esp_err_t err = tg_ups_init();
+    esp_err_t err = tg_power_init();
     if (err != ESP_OK) {
-        ESP_LOGW(TAG, "tg_ups_init returned %d", err);
+        ESP_LOGW(TAG, "tg_power_init returned %d", err);
     }
 
     ESP_LOGI(TAG, "TinyGate C drivers initialized.");
@@ -18,24 +18,24 @@ esp_err_t tg_c_drivers_init(void)
 }
 
 // ==========================================
-// 1. UPS & Battery Management
+// 1. Power rail / supercapacitor hold-up
 // ==========================================
-esp_err_t tg_ups_init(void)
+esp_err_t tg_power_init(void)
 {
-    ESP_LOGI(TAG, "[UPS] Initializing ADC voltage sampling & power loss interrupt...");
+    ESP_LOGI(TAG, "[POWER] Initializing mains-loss interrupt & supercap rail sampling...");
     return ESP_OK;
 }
 
-float tg_ups_get_battery_voltage(void)
+bool tg_power_mains_lost(void)
 {
-    // Mock 3.85V for initial bring-up
-    return 3.85f;
+    // Placeholder: external power is present.
+    return false;
 }
 
-bool tg_ups_is_mains_power_loss(void)
+float tg_power_rail_voltage(void)
 {
-    // Return false (normal external power)
-    return false;
+    // Placeholder: supercap rail is up.
+    return 5.0f;
 }
 
 // ==========================================
