@@ -1,32 +1,28 @@
-use anyhow::{bail, Result};
+//! UPS power path: battery voltage and mains-loss flag.
+//!
+//! The C component still reports placeholder values (see
+//! `docs/onboard-drivers.md`); the Rust facade already exposes the product
+//! shape the power milestone will consume.
+use crate::drivers::lease::check;
+use anyhow::Result;
+use esp_idf_svc::sys;
 
-#[allow(dead_code)]
-unsafe extern "C" {
-    pub fn tg_c_drivers_init() -> i32;
-    pub fn tg_ups_init() -> i32;
-    pub fn tg_ups_get_battery_voltage() -> f32;
-    pub fn tg_ups_is_mains_power_loss() -> bool;
-}
+pub struct Ups;
 
-pub struct CDrivers;
-
-impl CDrivers {
-    /// Initialize all low-level C peripheral drivers
-    pub fn init_all() -> Result<()> {
-        let ret = unsafe { tg_c_drivers_init() };
-        if ret != 0 {
-            bail!("tg_c_drivers_init failed with error code: {}", ret);
-        }
-        Ok(())
+impl Ups {
+    /// Initialize the UPS sampling path. No owner guard: the C component
+    /// exposes no deinit, so the device is initialized once per boot.
+    pub fn init() -> Result<()> {
+        check(unsafe { sys::tg_ups_init() }, "UPS init")
     }
 
-    /// Read UPS battery voltage (V)
+    /// Battery voltage in volts.
     pub fn battery_voltage() -> f32 {
-        unsafe { tg_ups_get_battery_voltage() }
+        unsafe { sys::tg_ups_get_battery_voltage() }
     }
 
-    /// Check whether external power has dropped (UPS state)
+    /// Whether external power has dropped.
     pub fn is_power_loss() -> bool {
-        unsafe { tg_ups_is_mains_power_loss() }
+        unsafe { sys::tg_ups_is_mains_power_loss() }
     }
 }
