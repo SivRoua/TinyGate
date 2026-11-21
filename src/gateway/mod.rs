@@ -13,5 +13,6 @@
 pub mod access;
 pub mod bus;
 pub mod device;
+pub mod event;
 pub mod identity;
 pub mod presence;

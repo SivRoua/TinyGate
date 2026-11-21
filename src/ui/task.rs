@@ -5,7 +5,8 @@
 //! from the bus; it holds no other capability.
 use crate::drivers::sys;
 use crate::gateway::bus::BusReceiver;
-use crate::gateway::device::{GatewayEvent, Property};
+use crate::gateway::device::Property;
+use crate::gateway::event::GatewayEvent;
 use crate::ui::Ui;
 use embassy_time::{Duration, Ticker};
 use log::warn;

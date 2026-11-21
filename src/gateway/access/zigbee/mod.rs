@@ -1,18 +1,21 @@
 //! Zigbee coordinator service: join window, endpoint discovery, reporting
 //! configuration, observation publishing, and presence.
 //!
-//! Migrated from the bring-up demo. All `Coordinator` calls originate in
-//! this single task — the C component's serialization contract — and every
-//! observation leaves as a typed [`GatewayEvent`] on the bus. Command
-//! execution (read/write with TX-confirm verification) is the next
+//! All `Coordinator` calls originate in this single task — the C component's
+//! serialization contract — and every observation leaves as a typed
+//! [`GatewayEvent`] on the bus. Peer endpoint mapping lives in [`peer`].
+//! Command execution (read/write with TX-confirm verification) is the next
 //! milestone; today the service only observes.
+mod peer;
+
 use crate::drivers::radio::zigbee::Coordinator;
 use crate::gateway::bus::BusSender;
-use crate::gateway::device::{GatewayEvent, Property, Value};
+use crate::gateway::event::GatewayEvent;
 use crate::gateway::presence::PresenceTracker;
 use embassy_time::{Duration, Instant, Timer};
 use esp_idf_svc::sys;
 use log::{info, warn};
+use peer::{PROFILE_HA, Peer, is_peer_address};
 use std::collections::HashMap;
 
 /// Network bring-up grace (the coordinator restores its persistent network).
@@ -23,16 +26,6 @@ const POLL_TICK: Duration = Duration::from_millis(20);
 const PRESENCE_TIMEOUT: Duration = Duration::from_secs(15);
 /// Join window opened once the network is ready.
 const JOIN_WINDOW_SECONDS: u8 = 60;
-/// Home Automation profile; only HA endpoints get configured.
-const PROFILE_HA: u16 = 0x0104;
-const CLUSTER_TEMPERATURE: u16 = 0x0402;
-const CLUSTER_ONOFF: u16 = 0x0006;
-
-#[derive(Default)]
-struct Peer {
-    temperature_endpoint: Option<u8>,
-    onoff_endpoint: Option<u8>,
-}
 
 #[embassy_executor::task]
 pub async fn coordinator_service(bus: BusSender<'static>) {
@@ -156,7 +149,7 @@ fn handle(
         }
         sys::TG_ZB_ATTRIBUTE => {
             if let Some(peer) = peers.get(&event.short_address) {
-                if let Some((property, value)) = observation(peer, &event) {
+                if let Some((property, value)) = peer.observation(&event) {
                     let _ = bus.try_send(GatewayEvent::Property {
                         address: event.short_address,
                         endpoint: event.endpoint,
@@ -196,12 +189,7 @@ fn configure_endpoint(
     cluster: u16,
     request_id: &mut u32,
 ) {
-    let claimed = match cluster {
-        CLUSTER_TEMPERATURE => peer.temperature_endpoint.is_none(),
-        CLUSTER_ONOFF => peer.onoff_endpoint.is_none(),
-        _ => false,
-    };
-    if !claimed {
+    if !peer.wants(cluster) {
         return;
     }
     let id = *request_id;
@@ -216,27 +204,6 @@ fn configure_endpoint(
         warn!("reporting {cluster:#06x} on {address:#06x}: {err:#}");
         return;
     }
-    match cluster {
-        CLUSTER_TEMPERATURE => peer.temperature_endpoint = Some(endpoint),
-        CLUSTER_ONOFF => peer.onoff_endpoint = Some(endpoint),
-        _ => {}
-    }
+    peer.record(cluster, endpoint);
     info!("ZB {address:#06x} endpoint {endpoint} cluster {cluster:#06x} configured");
-}
-
-/// Attribute value to typed observation, per the bring-up protocol units
-/// (temperature attribute carries 0.01 degC; OnOff carries 0/1).
-fn observation(peer: &Peer, event: &sys::tg_zigbee_event_t) -> Option<(Property, Value)> {
-    if peer.temperature_endpoint == Some(event.endpoint) && event.cluster == CLUSTER_TEMPERATURE {
-        Some((Property::Temperature, Value::Number(event.value as f32 / 100.0)))
-    } else if peer.onoff_endpoint == Some(event.endpoint) && event.cluster == CLUSTER_ONOFF {
-        Some((Property::Power, Value::Bool(event.value != 0)))
-    } else {
-        None
-    }
-}
-
-/// Short addresses in the valid peer range (0 reserved, 0xfff8+ reserved).
-fn is_peer_address(address: u16) -> bool {
-    address > 0 && address < 0xfff8
 }

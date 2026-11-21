@@ -1,9 +1,8 @@
-//! Internal typed model — shapes aligned with `contracts/schemas` v1.
+//! Device vocabulary shared by every access protocol and by the uplink.
 //!
-//! Wire-format concerns (`event_id`, `seq`, JSON encoding, replay) live in
-//! the uplink milestone; everything here is the gateway's own vocabulary:
-//! snake_case property names, string endpoints, bool/number values, and
-//! the presence/observation semantics the contracts mandate.
+//! Shapes align with `contracts/schemas` v1: snake_case property names,
+//! string endpoints, bool/number values. Wire-format concerns (`event_id`,
+//! `seq`, JSON encoding) belong to the event and uplink milestones.
 
 /// Access protocol of a device.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -46,22 +45,6 @@ impl Value {
             Value::Text(text) => (*text).to_string(),
         }
     }
-}
-
-/// A radio observation worth showing, and later, uploading.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum GatewayEvent {
-    /// Coordinator lifecycle; BLE joins this in its milestone.
-    RadioZigbee { ready: bool },
-    /// A peer crossed the presence line (join or 15 s silence).
-    PeerPresence { address: u16, online: bool },
-    /// Observed property value (`endpoint` is the protocol endpoint).
-    Property {
-        address: u16,
-        endpoint: u8,
-        property: Property,
-        value: Value,
-    },
 }
 
 #[cfg(test)]
